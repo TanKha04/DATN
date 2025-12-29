@@ -1,0 +1,47 @@
+# File cấu hình nhạy cảm (chứa mật khẩu, API keys)
+.env
+*.env
+config.php
+config.final.php
+config.docker.php
+config.simple.php
+config.minimal.php
+
+# File Docker (có thể chứa thông tin nhạy cảm)
+docker-compose.yml
+docker-compose
+
+# File tạm và cache
+*.bak
+*.log
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Dependencies
+node_modules/
+vendor/
+
+# File nén
+*.zip
+*.tar
+*.gz
+*.7z
+*.rar
+
+# Database files
+*.db
+*.sqlite
+
+# Uploads (user data)
+uploads/*
+!uploads/.gitkeep
+
+# File cá nhân/ghi chú
+kha123.txt
+.todo.md

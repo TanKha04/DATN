@@ -237,7 +237,7 @@ if (!$isEmbed) {
                     <a href="video_call.php?with=<?php echo $other_user_id; ?>" class="header-action-btn video-call-btn" title="Gọi video">
                         <i class="bi bi-camera-video-fill"></i>
                     </a>
-                    <a href="view_profile.php?id=<?php echo $other_user_id; ?>" class="header-action-btn" title="Xem hồ sơ">
+                    <a href="view_profile.php?id=<?php echo $other_user_id; ?>&embed=1" class="header-action-btn" title="Xem hồ sơ">
                         <i class="bi bi-person"></i>
                     </a>
                 </div>

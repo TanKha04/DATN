@@ -991,12 +991,9 @@ require_once 'header.php';
           <i class="bi bi-heart-fill"></i>
           <span>Yêu thích</span>
         </a>
-        <a href="#" class="sidebar-menu-item" data-section="reports" onclick="return showSection('reports', 'Khiếu nại')">
-          <i class="bi bi-flag-fill"></i>
-          <span>Khiếu nại</span>
-          <?php if (!empty($reportStats['pending_reports'])): ?>
-            <span class="badge bg-danger"><?php echo (int)$reportStats['pending_reports']; ?></span>
-          <?php endif; ?>
+        <a href="#" class="sidebar-menu-item" data-section="reports" onclick="return showSection('reports', 'Thống kê')">
+          <i class="bi bi-bar-chart-fill"></i>
+          <span>Thống kê</span>
         </a>
         <a href="#" class="sidebar-menu-item" data-section="notifications" onclick="return showSection('notifications', 'Thông báo')">
           <i class="bi bi-megaphone-fill"></i>
@@ -1147,9 +1144,9 @@ require_once 'header.php';
               <div class="feature-icon"><i class="bi bi-exclamation-triangle-fill"></i></div>
             </div>
             <div class="feature-card-body">
-              <div class="feature-title">Khiếu nại & báo cáo</div>
-              <div class="feature-desc">Theo dõi và xử lý khiếu nại của người dùng.</div>
-              <a class="feature-link" href="admin_reports.php"><span>Xem khiếu nại</span> <i class="bi bi-arrow-right"></i></a>
+              <div class="feature-title">Thống kê hệ thống</div>
+              <div class="feature-desc">Xem thống kê và báo cáo hoạt động.</div>
+              <a class="feature-link" href="admin_reports.php"><span>Xem thống kê</span> <i class="bi bi-arrow-right"></i></a>
             </div>
           </div>
         </div>
@@ -1198,10 +1195,10 @@ require_once 'header.php';
         </div>
         <div class="col-6 col-md-3">
           <div class="mini-stat">
-            <div class="stat-icon bg-orange"><i class="bi bi-bell-fill"></i></div>
+            <div class="stat-icon bg-orange"><i class="bi bi-bar-chart-fill"></i></div>
             <div>
               <div class="stat-value"><?php echo (int)($reportStats['pending_reports'] ?? 0); ?></div>
-              <div class="stat-label">Khiếu nại chờ xử lý</div>
+              <div class="stat-label">Báo cáo bình luận</div>
             </div>
           </div>
         </div>
@@ -3204,7 +3201,7 @@ require_once 'header.php';
           'verifications': 'Xác minh',
           'posts': 'Bài viết',
           'favorites': 'Yêu thích',
-          'reports': 'Khiếu nại',
+          'reports': 'Thống kê',
           'notifications': 'Thông báo',
           'profile': 'Hồ sơ'
         };

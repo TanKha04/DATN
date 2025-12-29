@@ -612,7 +612,7 @@ body { padding-top: 0 !important; }
 
                         <div class="form-field">
                             <label>Tiểu sử</label>
-                            <textarea name="bio" placeholder="Giới thiệu ngắn về bản thân, kinh nghiệm hoặc nhu cầu của bạn..."><?php echo htmlspecialchars($user['bio']); ?></textarea>
+                            <textarea name="bio" placeholder="Giới thiệu ngắn về bản thân, kinh nghiệm hoặc nhu cầu của bạn..."><?php echo htmlspecialchars($user['bio'] ?? ''); ?></textarea>
                         </div>
                     </div>
 
@@ -626,11 +626,11 @@ body { padding-top: 0 !important; }
                         <div class="form-row">
                             <div class="form-field">
                                 <label>Vị trí / Khu vực</label>
-                                <input type="text" name="location" value="<?php echo htmlspecialchars($user['location']); ?>" placeholder="Ví dụ: Quận 1, TP.HCM">
+                                <input type="text" name="location" value="<?php echo htmlspecialchars($user['location'] ?? ''); ?>" placeholder="Ví dụ: Quận 1, TP.HCM">
                             </div>
                             <div class="form-field">
                                 <label>Số điện thoại</label>
-                                <input type="tel" name="phone" value="<?php echo htmlspecialchars($user['phone']); ?>" placeholder="Số điện thoại liên hệ">
+                                <input type="tel" name="phone" value="<?php echo htmlspecialchars($user['phone'] ?? ''); ?>" placeholder="Số điện thoại liên hệ">
                             </div>
                         </div>
 

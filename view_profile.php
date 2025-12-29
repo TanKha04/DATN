@@ -1,6 +1,9 @@
 <?php
 require_once 'config.php';
 
+// Check if embed mode
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+
 $success = '';
 $error = '';
 
@@ -118,6 +121,9 @@ if (is_logged_in() && $_SESSION['user_id'] != $profile_user_id) {
 
 <style>
 .profile-page { background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); min-height: 100vh; margin: -1.5rem -0.75rem; padding: 2rem; }
+<?php if ($isEmbed): ?>
+.profile-page { margin: 0; min-height: auto; }
+<?php endif; ?>
 .profile-container { max-width: 900px; margin: 0 auto; }
 .profile-back { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; background: rgba(255,255,255,0.2); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.3); border-radius: 10px; color: #fff; text-decoration: none; font-weight: 600; transition: all 0.3s ease; margin-bottom: 1.5rem; }
 .profile-back:hover { background: #fff; color: #3b82f6; }

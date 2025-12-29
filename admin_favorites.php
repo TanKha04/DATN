@@ -309,12 +309,12 @@ require_once 'header.php';
                                                     <input type="hidden" name="action" value="delete_favorite">
                                                     <input type="hidden" name="user_id" value="<?php echo (int)($fav['user_id'] ?? 0); ?>">
                                                     <input type="hidden" name="post_id" value="<?php echo (int)($fav['post_id'] ?? 0); ?>">
-                                                    <button class="fav-btn delete" title="Xóa"><i class="bi bi-trash3"></i></button>
+                                                    <button class="fav-btn delete" title="Xóa"><i class="bi bi-trash3"></i> Xóa</button>
                                                 </form>
                                                 <form method="post" class="d-inline" onsubmit="return confirm('Xóa toàn bộ lượt yêu thích của bài viết này?');">
                                                     <input type="hidden" name="action" value="delete_post_favorites">
                                                     <input type="hidden" name="post_id" value="<?php echo (int)($fav['post_id'] ?? 0); ?>">
-                                                    <button class="fav-btn delete-all" title="Xóa theo bài viết"><i class="bi bi-trash3-fill"></i></button>
+                                                    <button class="fav-btn delete-all" title="Xóa theo bài viết"><i class="bi bi-trash3-fill"></i> Xóa bài</button>
                                                 </form>
                                             </div>
                                         </td>
