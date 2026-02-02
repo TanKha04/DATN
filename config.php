@@ -27,7 +27,8 @@ if ($isDocker) {
     define('DB_NAME', 'dacn1_db');
     define('DB_USER', 'root');
     define('DB_PASS', 'rootpassword');
-    define('SITE_URL', 'http://localhost:8080');
+    // Sử dụng ngrok URL khi test từ thiết bị khác, đổi lại localhost:8080 khi không dùng ngrok
+    define('SITE_URL', 'https://speakable-rosamaria-foxily.ngrok-free.dev');
 } else {
     // Local XAMPP configuration
     define('DB_HOST', 'localhost');

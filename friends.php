@@ -44,15 +44,28 @@ $sentRequests = $sentStmt->fetchAll(PDO::FETCH_ASSOC);
 $searchQuery = trim($_GET['q'] ?? '');
 $searchResults = [];
 if ($searchQuery !== '') {
+    // Kiểm tra người dùng hiện tại có phải admin không
+    $isCurrentUserAdmin = is_admin_user();
+    
+    // Xây dựng điều kiện role:
+    // - Admin chỉ tìm thấy admin khác (is_admin = 1)
+    // - Bệnh nhân/Sinh viên không tìm thấy admin (is_admin = 0 hoặc NULL)
+    $roleCondition = '';
+    if ($isCurrentUserAdmin) {
+        $roleCondition = "AND is_admin = 1";
+    } else {
+        $roleCondition = "AND (is_admin = 0 OR is_admin IS NULL)";
+    }
+    
     // Tìm kiếm: tên bắt đầu bằng từ khóa, hoặc có từ bắt đầu bằng từ khóa (sau khoảng trắng)
-    $searchStmt = $pdo->prepare('
+    $searchStmt = $pdo->prepare("
         SELECT id, name, email, avatar, role, verified, last_activity
         FROM users 
         WHERE id != ? AND (
             name LIKE ? OR 
             name LIKE ? OR
             email LIKE ?
-        )
+        ) $roleCondition
         ORDER BY 
             CASE 
                 WHEN LOWER(name) = LOWER(?) THEN 1
@@ -62,7 +75,7 @@ if ($searchQuery !== '') {
             END,
             name ASC
         LIMIT 20
-    ');
+    ");
     $exactMatch = $searchQuery;
     $startsWith = $searchQuery . '%';
     $wordStartsWith = '% ' . $searchQuery . '%';

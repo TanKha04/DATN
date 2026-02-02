@@ -15,7 +15,7 @@ try {
     }
     
     // Đánh dấu tất cả tin nhắn gửi đến user hiện tại là đã đọc
-    $stmt = $pdo->prepare('UPDATE messages SET is_read = 1 WHERE to_user = ? AND is_read = 0');
+    $stmt = $pdo->prepare('UPDATE messages SET is_read = 1 WHERE receiver_id = ? AND is_read = 0');
     $stmt->execute([$userId]);
     $updated = $stmt->rowCount();
     

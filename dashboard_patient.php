@@ -258,6 +258,12 @@ function filterApplicants() {
 }
 
 function showSection(sectionId, title) {
+    // Redirect chat to messages
+    if (sectionId === 'chat') {
+        sectionId = 'messages';
+        title = 'Tin nhắn';
+    }
+    
     // Ẩn tất cả sections
     document.querySelectorAll('.dashboard-section, .dashboard-welcome-section').forEach(function(el) {
         el.style.display = 'none';
@@ -272,29 +278,40 @@ function showSection(sectionId, title) {
         if (section) {
             section.style.display = 'block';
             
-            // Load iframe nếu có
-            var iframe = section.querySelector('iframe');
-            if (iframe) {
-                var iframeSrc = {
-                    'search': 'index.php?type=application&embed=1',
-                    'create-post': 'create_recruitment.php?embed=1',
-                    'request-permission': 'request_posting_permission.php?embed=1',
-                    'my-posts': 'index.php?my_posts=1&embed=1',
-                    'history': 'assignment_history.php?embed=1',
-                    'favorites': 'favorites.php?embed=1',
-                    'messages': 'view_messages.php?embed=1',
-                    'notifications': 'view_messages.php?from_admin=1&embed=1',
-                    'chat': 'conversations.php?embed=1',
-                    'friends': 'friends.php?embed=1',
-                    'profile': 'edit_profile.php?embed=1',
-                    'ratings': 'profile.php?embed=1',
-                    'stats': 'profile.php?tab=stats&embed=1',
-                    'support': 'account_request.php?embed=1',
-                    'settings': 'edit_profile.php?tab=settings&embed=1'
-                };
-                var currentSrc = iframe.getAttribute('src');
-                if (iframeSrc[sectionId] && (!currentSrc || currentSrc === '')) {
-                    iframe.src = iframeSrc[sectionId];
+            // Load conversations nếu là section messages
+            if (sectionId === 'messages') {
+                if (typeof loadConversations === 'function') {
+                    loadConversations();
+                }
+            }
+            // Load friends nếu là section friends
+            else if (sectionId === 'friends') {
+                if (typeof loadFriendsPage === 'function') {
+                    loadFriendsPage('accepted');
+                }
+            }
+            // Load iframe nếu có (cho các section khác)
+            else {
+                var iframe = section.querySelector('iframe');
+                if (iframe) {
+                    var iframeSrc = {
+                        'search': 'index.php?type=application&embed=1',
+                        'create-post': 'create_recruitment.php?embed=1',
+                        'request-permission': 'request_posting_permission.php?embed=1',
+                        'my-posts': 'index.php?my_posts=1&embed=1',
+                        'history': 'assignment_history.php?embed=1',
+                        'favorites': 'favorites.php?embed=1',
+                        'notifications': 'notifications.php?embed=1',
+                        'profile': 'edit_profile.php?embed=1',
+                        'ratings': 'profile.php?embed=1',
+                        'stats': 'profile.php?tab=stats&embed=1',
+                        'support': 'account_request.php?embed=1',
+                        'settings': 'edit_profile.php?tab=settings&embed=1'
+                    };
+                    var currentSrc = iframe.getAttribute('src');
+                    if (iframeSrc[sectionId] && (!currentSrc || currentSrc === '')) {
+                        iframe.src = iframeSrc[sectionId];
+                    }
                 }
             }
         }
@@ -439,15 +456,22 @@ function confirmDeleteAccount() {
             <!-- Liên lạc -->
             <div class="sidebar-menu-section">
                 <div class="sidebar-menu-title">Liên lạc</div>
-                <a href="#" class="sidebar-menu-item" data-section="messages" onclick="return showSection('messages', 'Tin nhắn')">
+                <a href="#" class="sidebar-menu-item" data-section="notifications" onclick="return showSection('notifications', 'Tin Nhắn')">
                     <i class="bi bi-envelope-fill"></i>
-                    <span>Tin nhắn</span>
-                    <?php if ($messageCount > 0): ?>
-                    <span class="badge"><?php echo $messageCount; ?></span>
+                    <span>Tin Nhắn</span>
+                    <?php 
+                    // Đếm thông báo chưa đọc
+                    $unreadNotifyCount = 0;
+                    try {
+                        $notifyStmt = $pdo->prepare('SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = 0');
+                        $notifyStmt->execute([$userId]);
+                        $unreadNotifyCount = (int)$notifyStmt->fetchColumn();
+                    } catch (Throwable $e) {}
+                    if ($unreadNotifyCount > 0): ?>
+                    <span class="badge bg-danger"><?php echo $unreadNotifyCount; ?></span>
                     <?php endif; ?>
                 </a>
             </div>
-            
             <!-- Đánh giá -->
             <div class="sidebar-menu-section">
                 <div class="sidebar-menu-title">Thống kê</div>
@@ -561,7 +585,7 @@ function confirmDeleteAccount() {
                         <span class="btn-icon"><i class="bi bi-bell-fill"></i></span>
                         <span class="btn-text">Thông báo</span>
                     </a>
-                    <a href="#" onclick="showSection('messages', 'Tin nhắn'); return false;" class="welcome-btn outline">
+                    <a href="#" onclick="showSection('messages', 'Tin Nhắn'); return false;" class="welcome-btn outline">
                         <span class="btn-icon"><i class="bi bi-chat-dots-fill"></i></span>
                         <span class="btn-text">Tin nhắn</span>
                     </a>
@@ -811,37 +835,67 @@ function confirmDeleteAccount() {
                             <p>Hãy là người đầu tiên đăng tin trên hệ thống!</p>
                         </div>
                         <?php else: ?>
-                        <?php foreach ($latestPosts as $post): ?>
-                        <div class="post-item" data-title="<?php echo htmlspecialchars(strtolower($post['title'])); ?>" data-content="<?php echo htmlspecialchars(strtolower($post['content'] ?? '')); ?>" data-location="<?php echo htmlspecialchars(strtolower($post['location'] ?? '')); ?>">
-                            <div class="post-item-avatar">
-                                <?php if (!empty($post['author_avatar'])): ?>
-                                <img src="<?php echo htmlspecialchars($post['author_avatar']); ?>" alt="Avatar">
-                                <?php else: ?>
-                                <div class="avatar-placeholder">
-                                    <i class="bi bi-person"></i>
-                                </div>
-                                <?php endif; ?>
-                                <?php if (!empty($post['verified'])): ?>
-                                <span class="verified-badge" title="Đã xác minh"><i class="bi bi-patch-check-fill"></i></span>
-                                <?php endif; ?>
-                            </div>
-                            <div class="post-item-content">
-                                <h5 class="post-item-title">
+                        <?php foreach ($latestPosts as $post): 
+                            $isRecruitment = ($post['type'] ?? '') === 'recruitment';
+                            $statusClass = ($post['status'] ?? 'open') === 'open' ? 'status-open' : 'status-closed';
+                            $statusText = ($post['status'] ?? 'open') === 'open' ? 'Đang mở' : 'Đã nhận';
+                        ?>
+                        <div class="post-card-new" data-title="<?php echo htmlspecialchars(strtolower($post['title'])); ?>" data-content="<?php echo htmlspecialchars(strtolower($post['content'] ?? '')); ?>" data-location="<?php echo htmlspecialchars(strtolower($post['location'] ?? '')); ?>">
+                            <!-- Header: Title + Status -->
+                            <div class="post-card-header">
+                                <h5 class="post-card-title">
                                     <a href="view_post.php?id=<?php echo $post['id']; ?>"><?php echo htmlspecialchars($post['title']); ?></a>
                                 </h5>
-                                <div class="post-item-meta">
-                                    <span><i class="bi bi-person"></i> <?php echo htmlspecialchars($post['author_name']); ?></span>
-                                    <span><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($post['location'] ?? 'Chưa cập nhật'); ?></span>
-                                    <span><i class="bi bi-clock"></i> <?php echo date('d/m/Y', strtotime($post['created_at'])); ?></span>
-                                </div>
+                                <span class="post-status-badge <?php echo $statusClass; ?>"><?php echo $statusText; ?></span>
                             </div>
-                            <div class="post-item-actions">
-                                <a href="view_post.php?id=<?php echo $post['id']; ?>" class="btn-view-post">
-                                    <i class="bi bi-eye"></i> Xem
+                            
+                            <!-- Tags: Type + Category -->
+                            <div class="post-card-tags">
+                                <span class="post-tag <?php echo $isRecruitment ? 'tag-recruitment' : 'tag-application'; ?>">
+                                    <i class="bi <?php echo $isRecruitment ? 'bi-briefcase-fill' : 'bi-person-badge-fill'; ?>"></i>
+                                    <?php echo $isRecruitment ? 'Tuyển dụng' : 'Ứng tuyển'; ?>
+                                </span>
+                                <?php if (!empty($post['category'])): ?>
+                                <span class="post-tag tag-category"><?php echo htmlspecialchars($post['category']); ?></span>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Location (riêng dòng) -->
+                            <?php if (!empty($post['location'])): ?>
+                            <div class="post-card-location">
+                                <i class="bi bi-geo-alt-fill"></i>
+                                <span><?php echo htmlspecialchars($post['location']); ?></span>
+                            </div>
+                            <?php endif; ?>
+                            
+                            <!-- Author + Online Status -->
+                            <div class="post-card-author">
+                                <i class="bi bi-person-circle"></i>
+                                <span class="author-name"><?php echo htmlspecialchars($post['author_name']); ?></span>
+                                <?php if (!empty($post['verified'])): ?>
+                                <i class="bi bi-patch-check-fill verified-icon" title="Đã xác minh"></i>
+                                <?php endif; ?>
+                                <?php if (function_exists('is_user_online') && is_user_online($post['last_activity'] ?? null)): ?>
+                                <span class="online-status"><i class="bi bi-circle-fill"></i> Đang trực tuyến</span>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <!-- Description -->
+                            <p class="post-card-desc">
+                                <?php 
+                                $content = strip_tags($post['content'] ?? '');
+                                echo htmlspecialchars(mb_substr($content, 0, 100)) . (mb_strlen($content) > 100 ? '...' : '');
+                                ?>
+                            </p>
+                            
+                            <!-- Footer: Button + Time -->
+                            <div class="post-card-footer">
+                                <a href="view_post.php?id=<?php echo $post['id']; ?>" class="btn-view-detail">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
                                 </a>
-                                <button class="btn-contact-post" onclick="contactStudent(<?php echo $post['user_id']; ?>, '<?php echo htmlspecialchars(addslashes($post['author_name'])); ?>')">
-                                    <i class="bi bi-chat-dots"></i> Liên hệ
-                                </button>
+                                <span class="post-time">
+                                    <i class="bi bi-clock"></i> <?php echo date('d/m/Y H:i', strtotime($post['created_at'])); ?>
+                                </span>
                             </div>
                         </div>
                         <?php endforeach; ?>
@@ -2302,19 +2356,144 @@ function confirmDeleteAccount() {
             <iframe id="iframe-notifications" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
-        <!-- Section: Tin nhắn -->
+        <!-- Section: Tin nhắn / Chat - Hiển thị trực tiếp -->
         <div class="dashboard-section" id="section-messages" style="display: none;">
-            <iframe id="iframe-messages" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+            <div class="chat-inline-container">
+                <!-- Sidebar danh sách cuộc trò chuyện -->
+                <div class="chat-sidebar">
+                    <div class="chat-sidebar-header">
+                        <div class="chat-sidebar-icon">
+                            <i class="bi bi-chat-dots-fill"></i>
+                        </div>
+                        <div>
+                            <h5>Trò chuyện</h5>
+                            <p>Kết nối và trao đổi trực tiếp</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Tabs -->
+                    <div class="chat-tabs">
+                        <button class="chat-tab active" data-tab="conversations" onclick="switchChatTab('conversations')">
+                            <i class="bi bi-chat-left-text"></i> Tin nhắn
+                        </button>
+                        <button class="chat-tab" data-tab="friends" onclick="switchChatTab('friends')">
+                            <i class="bi bi-people"></i> Bạn bè
+                            <span class="badge-count" id="friendRequestCount" style="display:none;">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Danh sách cuộc trò chuyện -->
+                    <div class="chat-list-container" id="conversationsTab">
+                        <div class="chat-list" id="conversationsList">
+                            <div class="chat-loading">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                <span>Đang tải...</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Danh sách bạn bè -->
+                    <div class="chat-list-container" id="friendsTab" style="display:none;">
+                        <div class="friends-tabs-inline">
+                            <button class="friend-tab-btn active" onclick="loadFriendsList('accepted')">
+                                <i class="bi bi-people-fill"></i> Bạn bè
+                            </button>
+                            <button class="friend-tab-btn" onclick="loadFriendsList('pending')">
+                                <i class="bi bi-person-plus"></i> Lời mời
+                                <span class="badge-pending" id="pendingBadge"></span>
+                            </button>
+                        </div>
+                        <div class="chat-list" id="friendsList">
+                            <div class="chat-loading">
+                                <div class="spinner-border spinner-border-sm text-primary"></div>
+                                <span>Đang tải...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Khu vực chat chính -->
+                <div class="chat-main">
+                    <div class="chat-empty-state" id="chatEmptyState">
+                        <div class="empty-icon">
+                            <i class="bi bi-chat-square-dots"></i>
+                        </div>
+                        <h4>Chọn một cuộc trò chuyện</h4>
+                        <p>Chọn từ danh sách bên trái hoặc bắt đầu cuộc trò chuyện mới</p>
+                    </div>
+                    
+                    <!-- Chat box khi đã chọn người -->
+                    <div class="chat-box" id="chatBox" style="display:none;">
+                        <div class="chat-box-header" id="chatBoxHeader">
+                            <!-- Header sẽ được load động -->
+                        </div>
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Messages sẽ được load động -->
+                        </div>
+                        <div class="chat-input-area">
+                            <form id="chatForm" onsubmit="sendMessage(event)">
+                                <input type="text" id="chatInput" placeholder="Nhập tin nhắn..." autocomplete="off">
+                                <button type="submit" class="btn-send">
+                                    <i class="bi bi-send-fill"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <!-- Section: Chat -->
+        <!-- Section: Chat (redirect to messages) -->
         <div class="dashboard-section" id="section-chat" style="display: none;">
-            <iframe id="iframe-chat" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+            <!-- Sử dụng chung với section-messages -->
         </div>
         
-        <!-- Section: Bạn bè -->
+        <!-- Section: Thông báo -->
+        <div class="dashboard-section" id="section-notifications" style="display: none;">
+            <iframe id="iframe-notifications" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+        </div>
+        
+        <!-- Section: Bạn bè - Trang riêng biệt -->
         <div class="dashboard-section" id="section-friends" style="display: none;">
-            <iframe id="iframe-friends" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+            <div class="friends-page-container">
+                <!-- Header xanh lá -->
+                <div class="friends-header">
+                    <div class="friends-header-content">
+                        <h4><i class="bi bi-people-fill"></i> Bạn bè</h4>
+                        <p>Quản lý danh sách bạn bè và lời mời kết bạn</p>
+                        
+                        <!-- Search box -->
+                        <div class="friends-search-box">
+                            <i class="bi bi-search"></i>
+                            <input type="text" id="friendsSearchInput" placeholder="Tìm kiếm người dùng..." onkeyup="searchFriends()">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tabs -->
+                <div class="friends-tabs-container">
+                    <button class="friends-tab-btn active" data-tab="accepted" onclick="switchFriendsTab('accepted')">
+                        <i class="bi bi-people-fill"></i> Bạn bè (<span id="friendsCount">0</span>)
+                    </button>
+                    <button class="friends-tab-btn" data-tab="pending" onclick="switchFriendsTab('pending')">
+                        <i class="bi bi-person-plus"></i> Lời mời
+                        <span class="friends-badge" id="pendingRequestsBadge" style="display:none;">0</span>
+                    </button>
+                    <button class="friends-tab-btn" data-tab="sent" onclick="switchFriendsTab('sent')">
+                        <i class="bi bi-send"></i> Đã gửi (<span id="sentCount">0</span>)
+                    </button>
+                </div>
+                
+                <!-- Friends List Content -->
+                <div class="friends-content">
+                    <div class="friends-list" id="friendsListContent">
+                        <div class="friends-loading">
+                            <div class="spinner-border spinner-border-sm text-primary"></div>
+                            <span>Đang tải...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
         
         <!-- Section: Hồ sơ cá nhân -->
@@ -4720,12 +4899,7 @@ function confirmDeleteAccount() {
             box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
         }
         
-        /* Posts List */
-        .latest-posts-list {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 1.5rem;
-        }
+        /* Posts List - moved to new post card styles */
         
         .empty-posts-state {
             text-align: center;
@@ -4772,6 +4946,248 @@ function confirmDeleteAccount() {
             transition: all 0.3s;
             border: 1px solid #e2e8f0;
             height: 100%;
+        }
+        
+        /* New Post Card Styles - Clean & Minimal v2 */
+        .post-card-new {
+            background: #fff !important;
+            border-radius: 16px !important;
+            padding: 1.25rem 1.5rem !important;
+            border: 1px solid #e5e7eb !important;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            box-shadow: none !important;
+        }
+        
+        .post-card-new::before {
+            display: none !important;
+        }
+        
+        .post-card-new:hover {
+            border-color: #3b82f6 !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08) !important;
+            transform: none !important;
+        }
+        
+        .post-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .post-card-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .post-card-title a {
+            color: #1f2937;
+            text-decoration: none;
+        }
+        
+        .post-card-title a:hover {
+            color: #3b82f6;
+        }
+        
+        .post-status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .post-status-badge.status-open {
+            background: #ecfdf5;
+            color: #059669;
+        }
+        
+        .post-status-badge.status-closed {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+        
+        .post-card-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .post-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px !important;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border: 1px solid #e5e7eb !important;
+        }
+        
+        .post-tag.tag-recruitment {
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            border-color: #dbeafe !important;
+        }
+        
+        .post-tag.tag-application {
+            background: #fefce8 !important;
+            color: #ca8a04 !important;
+            border-color: #fef08a !important;
+        }
+        
+        .post-tag.tag-category {
+            background: #f3f4f6 !important;
+            color: #4b5563 !important;
+            border-color: #e5e7eb !important;
+        }
+        
+        .post-tag.tag-location {
+            background: #f0fdf4 !important;
+            color: #16a34a !important;
+            border-color: #bbf7d0 !important;
+        }
+        
+        /* Location riêng dòng */
+        .post-card-location {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.8rem;
+            color: #16a34a;
+            padding: 0.35rem 0.7rem;
+            background: #f0fdf4;
+            border-radius: 6px;
+            width: fit-content;
+        }
+        
+        .post-card-location i {
+            font-size: 0.85rem;
+        }
+        
+        .post-card-author {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+        
+        .post-card-author i.bi-person-circle {
+            font-size: 0.9rem;
+            color: #9ca3af;
+        }
+        
+        .post-card-author .author-name {
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .post-card-author .verified-icon {
+            color: #3b82f6;
+            font-size: 0.8rem;
+        }
+        
+        .post-card-author .online-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.2rem;
+            font-size: 0.7rem;
+            color: #10b981;
+        }
+        
+        .post-card-author .online-status i {
+            font-size: 0.4rem;
+        }
+        
+        .post-card-desc {
+            margin: 0;
+            font-size: 0.85rem;
+            color: #6b7280;
+            line-height: 1.5;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+        
+        .post-card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 0.5rem;
+            padding-top: 0.75rem;
+            border-top: 1px solid #f3f4f6;
+        }
+        
+        .btn-view-detail {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.5rem 1rem;
+            background: #3b82f6 !important;
+            color: #fff !important;
+            border-radius: 8px !important;
+            font-size: 0.8rem;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.2s;
+            box-shadow: none !important;
+        }
+        
+        .btn-view-detail:hover {
+            background: #2563eb !important;
+            color: #fff !important;
+            transform: none !important;
+        }
+        
+        .post-time {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+        
+        /* Posts List Grid */
+        .latest-posts-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+            gap: 1rem;
+            padding: 1.25rem;
+        }
+        
+        @media (max-width: 768px) {
+            .latest-posts-list {
+                grid-template-columns: 1fr;
+                padding: 1rem;
+            }
+            
+            .post-card-new {
+                padding: 1rem 1.25rem;
+            }
+            
+            .post-card-footer {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: stretch;
+            }
+            
+            .btn-view-detail {
+                justify-content: center;
+            }
+            
+            .post-time {
+                justify-content: center;
+            }
         }
         
         .post-item:hover {
@@ -6558,7 +6974,7 @@ function filterPosts() {
     var filterLocation = document.getElementById('filterLocation').value.toLowerCase();
     var filterSpecialty = document.getElementById('filterSpecialty').value.toLowerCase();
     
-    var postItems = document.querySelectorAll('.post-item');
+    var postItems = document.querySelectorAll('.post-card-new, .post-item');
     var visibleCount = 0;
     
     postItems.forEach(function(item) {
@@ -6595,6 +7011,12 @@ function filterPosts() {
     } else {
         var tempEmpty = postsList.querySelector('.temp-empty');
         if (tempEmpty) tempEmpty.remove();
+    }
+    
+    // Scroll đến phần kết quả tìm kiếm
+    var searchFilterBar = document.querySelector('.search-filter-bar');
+    if (searchFilterBar) {
+        searchFilterBar.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
 
@@ -7186,11 +7608,834 @@ function toggleFavorite(postId, btn) {
     })
     .catch(() => alert('Lỗi kết nối!'));
 }
+
+// ========== CHAT INLINE FUNCTIONS ==========
+let currentConversationId = null;
+let currentChatUserId = null;
+let chatPollingInterval = null;
+
+function switchChatTab(tab) {
+    document.querySelectorAll('.chat-tab').forEach(t => t.classList.remove('active'));
+    document.querySelector(`.chat-tab[data-tab="${tab}"]`).classList.add('active');
+    
+    if (tab === 'conversations') {
+        document.getElementById('conversationsTab').style.display = 'block';
+        document.getElementById('friendsTab').style.display = 'none';
+        loadConversations();
+    } else {
+        document.getElementById('conversationsTab').style.display = 'none';
+        document.getElementById('friendsTab').style.display = 'block';
+        loadFriendsList('accepted');
+    }
+}
+
+function loadConversations() {
+    fetch('api/chat.php?action=get_conversations')
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById('conversationsList');
+            if (data.success && data.conversations && data.conversations.length > 0) {
+                list.innerHTML = data.conversations.map(conv => `
+                    <div class="chat-item ${currentConversationId == conv.id ? 'active' : ''}" onclick="openChat(${conv.other_user_id}, ${conv.id})">
+                        <div class="chat-item-avatar ${conv.other_user_role}">
+                            ${conv.other_user_avatar ? 
+                                `<img src="uploads/${conv.other_user_avatar}" alt="">` : 
+                                conv.other_user_name.charAt(0).toUpperCase()}
+                            <span class="status-dot ${isOnline(conv.other_user_last_activity) ? 'online' : ''}"></span>
+                        </div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">
+                                ${conv.other_user_name}
+                                ${conv.other_user_verified ? '<i class="bi bi-patch-check-fill verified"></i>' : ''}
+                            </div>
+                            <div class="chat-item-preview">${conv.last_message || 'Bắt đầu trò chuyện...'}</div>
+                        </div>
+                        <div class="chat-item-time">${formatTime(conv.last_message_time)}</div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = `
+                    <div class="chat-empty-list">
+                        <i class="bi bi-chat-square-dots"></i>
+                        <p>Chưa có cuộc trò chuyện nào</p>
+                        <small>Nhắn tin với sinh viên từ các tin đăng</small>
+                    </div>
+                `;
+            }
+        })
+        .catch(() => {
+            document.getElementById('conversationsList').innerHTML = '<div class="chat-error">Không thể tải dữ liệu</div>';
+        });
+}
+
+function loadFriendsList(status) {
+    document.querySelectorAll('.friend-tab-btn').forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    fetch(`api/chat.php?action=get_friends&status=${status}`)
+        .then(res => res.json())
+        .then(data => {
+            const list = document.getElementById('friendsList');
+            if (data.success && data.friends && data.friends.length > 0) {
+                list.innerHTML = data.friends.map(friend => `
+                    <div class="chat-item friend-item">
+                        <div class="chat-item-avatar ${friend.role}">
+                            ${friend.avatar ? 
+                                `<img src="uploads/${friend.avatar}" alt="">` : 
+                                friend.name.charAt(0).toUpperCase()}
+                            <span class="status-dot ${isOnline(friend.last_activity) ? 'online' : ''}"></span>
+                        </div>
+                        <div class="chat-item-info">
+                            <div class="chat-item-name">
+                                ${friend.name}
+                                ${friend.verified ? '<i class="bi bi-patch-check-fill verified"></i>' : ''}
+                            </div>
+                            <div class="chat-item-role">${friend.role === 'student' ? 'Sinh viên' : 'Bệnh nhân'}</div>
+                        </div>
+                        <div class="friend-actions">
+                            ${status === 'pending' ? `
+                                <button class="btn-accept" onclick="handleFriendRequest(${friend.friendship_id}, 'accept')">
+                                    <i class="bi bi-check-lg"></i>
+                                </button>
+                                <button class="btn-reject" onclick="handleFriendRequest(${friend.friendship_id}, 'reject')">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            ` : `
+                                <button class="btn-chat" onclick="openChat(${friend.id})">
+                                    <i class="bi bi-chat-dots"></i>
+                                </button>
+                            `}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                list.innerHTML = `
+                    <div class="chat-empty-list">
+                        <i class="bi bi-people"></i>
+                        <p>${status === 'pending' ? 'Không có lời mời kết bạn' : 'Chưa có bạn bè'}</p>
+                    </div>
+                `;
+            }
+            
+            // Update pending count
+            if (data.pending_count !== undefined) {
+                const badge = document.getElementById('pendingBadge');
+                if (data.pending_count > 0) {
+                    badge.textContent = data.pending_count;
+                    badge.style.display = 'inline';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+        });
+}
+
+function openChat(userId, conversationId = null) {
+    currentChatUserId = userId;
+    currentConversationId = conversationId;
+    
+    document.getElementById('chatEmptyState').style.display = 'none';
+    document.getElementById('chatBox').style.display = 'flex';
+    
+    // Load chat header and messages
+    fetch(`api/chat.php?action=get_messages&user_id=${userId}${conversationId ? '&conversation_id=' + conversationId : ''}`)
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                currentConversationId = data.conversation_id;
+                
+                // Update header
+                document.getElementById('chatBoxHeader').innerHTML = `
+                    <div class="chat-header-user">
+                        <div class="chat-header-avatar ${data.user.role}">
+                            ${data.user.avatar ? 
+                                `<img src="uploads/${data.user.avatar}" alt="">` : 
+                                data.user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <div class="chat-header-info">
+                            <div class="chat-header-name">
+                                ${data.user.name}
+                                ${data.user.verified ? '<i class="bi bi-patch-check-fill"></i>' : ''}
+                            </div>
+                            <div class="chat-header-status ${isOnline(data.user.last_activity) ? 'online' : ''}">
+                                ${isOnline(data.user.last_activity) ? 'Đang trực tuyến' : 'Ngoại tuyến'}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-header-actions">
+                        <a href="view_profile.php?id=${userId}" class="btn-header-action" title="Xem hồ sơ">
+                            <i class="bi bi-person"></i>
+                        </a>
+                        <a href="video_call.php?with=${userId}" class="btn-header-action" title="Gọi video">
+                            <i class="bi bi-camera-video"></i>
+                        </a>
+                    </div>
+                `;
+                
+                // Update messages
+                renderMessages(data.messages);
+                
+                // Start polling for new messages
+                startChatPolling();
+                
+                // Update active state in list
+                document.querySelectorAll('.chat-item').forEach(item => item.classList.remove('active'));
+                if (conversationId) {
+                    document.querySelector(`.chat-item[onclick*="${conversationId}"]`)?.classList.add('active');
+                }
+            }
+        });
+}
+
+function renderMessages(messages) {
+    const container = document.getElementById('chatMessages');
+    if (!messages || messages.length === 0) {
+        container.innerHTML = `
+            <div class="chat-no-messages">
+                <i class="bi bi-chat-heart"></i>
+                <p>Bắt đầu cuộc trò chuyện!</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = messages.map(msg => `
+        <div class="chat-message ${msg.is_mine ? 'mine' : 'theirs'}">
+            <div class="message-bubble">
+                <div class="message-text">${escapeHtml(msg.message)}</div>
+                <div class="message-time">${formatTime(msg.created_at)}</div>
+            </div>
+        </div>
+    `).join('');
+    
+    container.scrollTop = container.scrollHeight;
+}
+
+function sendMessage(e) {
+    e.preventDefault();
+    const input = document.getElementById('chatInput');
+    const message = input.value.trim();
+    
+    if (!message || !currentChatUserId) return;
+    
+    fetch('api/chat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=send_message&user_id=${currentChatUserId}&message=${encodeURIComponent(message)}${currentConversationId ? '&conversation_id=' + currentConversationId : ''}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            input.value = '';
+            currentConversationId = data.conversation_id;
+            
+            // Add message to UI immediately
+            const container = document.getElementById('chatMessages');
+            const noMessages = container.querySelector('.chat-no-messages');
+            if (noMessages) noMessages.remove();
+            
+            container.innerHTML += `
+                <div class="chat-message mine">
+                    <div class="message-bubble">
+                        <div class="message-text">${escapeHtml(message)}</div>
+                        <div class="message-time">Vừa xong</div>
+                    </div>
+                </div>
+            `;
+            container.scrollTop = container.scrollHeight;
+            
+            // Refresh conversation list
+            loadConversations();
+        }
+    });
+}
+
+function startChatPolling() {
+    if (chatPollingInterval) clearInterval(chatPollingInterval);
+    
+    chatPollingInterval = setInterval(() => {
+        if (currentConversationId) {
+            fetch(`api/chat.php?action=get_new_messages&conversation_id=${currentConversationId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.messages && data.messages.length > 0) {
+                        renderMessages(data.messages);
+                    }
+                });
+        }
+    }, 3000);
+}
+
+function handleFriendRequest(friendshipId, action) {
+    fetch('api/chat.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `action=handle_friend_request&friendship_id=${friendshipId}&response=${action}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            loadFriendsList('pending');
+        }
+    });
+}
+
+function isOnline(lastActivity) {
+    if (!lastActivity) return false;
+    const diff = (Date.now() - new Date(lastActivity).getTime()) / 1000 / 60;
+    return diff < 5;
+}
+
+function formatTime(datetime) {
+    if (!datetime) return '';
+    const date = new Date(datetime);
+    const now = new Date();
+    const diff = (now - date) / 1000 / 60;
+    
+    if (diff < 1) return 'Vừa xong';
+    if (diff < 60) return Math.floor(diff) + ' phút';
+    if (diff < 1440) return Math.floor(diff / 60) + ' giờ';
+    return date.toLocaleDateString('vi-VN');
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Load conversations when section is shown
+document.addEventListener('DOMContentLoaded', function() {
+    const originalShowSection = window.showSection;
+    window.showSection = function(sectionId, title) {
+        originalShowSection(sectionId, title);
+        if (sectionId === 'messages' || sectionId === 'chat') {
+            loadConversations();
+        }
+    };
+});
 </script>
 
 <style>
 @keyframes fadeOut {
     from { opacity: 1; transform: translateX(0); }
     to { opacity: 0; transform: translateX(20px); }
+}
+
+/* ========== CHAT INLINE STYLES ========== */
+.chat-inline-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 140px);
+    background: #f8fafc;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+}
+
+.chat-sidebar {
+    background: linear-gradient(180deg, #1e40af 0%, #3b82f6 100%);
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-sidebar-header {
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.chat-sidebar-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.chat-sidebar-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.chat-sidebar-header p {
+    margin: 0;
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.chat-tabs {
+    display: flex;
+    padding: 0.75rem;
+    gap: 0.5rem;
+}
+
+.chat-tab {
+    flex: 1;
+    padding: 0.6rem;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.chat-tab:hover, .chat-tab.active {
+    background: rgba(255,255,255,0.25);
+}
+
+.chat-tab .badge-count {
+    background: #ef4444;
+    padding: 0.15rem 0.4rem;
+    border-radius: 10px;
+    font-size: 0.7rem;
+}
+
+.chat-list-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.chat-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(255,255,255,0.08);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.chat-item:hover, .chat-item.active {
+    background: rgba(255,255,255,0.2);
+}
+
+.chat-item-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.1rem;
+    position: relative;
+    flex-shrink: 0;
+}
+
+.chat-item-avatar.student { background: linear-gradient(135deg, #10b981, #059669); }
+.chat-item-avatar.patient { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.chat-item-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.chat-item-avatar .status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #94a3b8;
+    border: 2px solid #1e40af;
+}
+
+.chat-item-avatar .status-dot.online {
+    background: #22c55e;
+}
+
+.chat-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.chat-item-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.chat-item-name .verified {
+    color: #60a5fa;
+    font-size: 0.8rem;
+}
+
+.chat-item-preview, .chat-item-role {
+    font-size: 0.75rem;
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.chat-item-time {
+    font-size: 0.7rem;
+    opacity: 0.6;
+}
+
+.chat-empty-list {
+    text-align: center;
+    padding: 2rem 1rem;
+    opacity: 0.7;
+}
+
+.chat-empty-list i {
+    font-size: 2.5rem;
+    margin-bottom: 0.75rem;
+    display: block;
+}
+
+.chat-empty-list p {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+.chat-empty-list small {
+    font-size: 0.75rem;
+    opacity: 0.7;
+}
+
+.chat-loading {
+    text-align: center;
+    padding: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+/* Friends tabs */
+.friends-tabs-inline {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background: rgba(0,0,0,0.1);
+    border-radius: 10px;
+    margin-bottom: 0.5rem;
+}
+
+.friend-tab-btn {
+    flex: 1;
+    padding: 0.5rem;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-size: 0.8rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.friend-tab-btn.active {
+    background: rgba(255,255,255,0.2);
+}
+
+.badge-pending {
+    background: #ef4444;
+    padding: 0.1rem 0.35rem;
+    border-radius: 8px;
+    font-size: 0.65rem;
+}
+
+.friend-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.friend-actions button {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-accept { background: #22c55e; color: #fff; }
+.btn-reject { background: #ef4444; color: #fff; }
+.btn-chat { background: rgba(255,255,255,0.2); color: #fff; }
+
+/* Chat Main Area */
+.chat-main {
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+.chat-empty-state .empty-icon {
+    width: 100px;
+    height: 100px;
+    background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.5rem;
+    color: #3b82f6;
+    margin-bottom: 1.5rem;
+}
+
+.chat-empty-state h4 {
+    color: #475569;
+    margin-bottom: 0.5rem;
+}
+
+.chat-empty-state p {
+    font-size: 0.9rem;
+}
+
+/* Chat Box */
+.chat-box {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-box-header {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.chat-header-user {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.chat-header-avatar {
+    width: 45px;
+    height: 45px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    color: #fff;
+}
+
+.chat-header-avatar.student { background: linear-gradient(135deg, #10b981, #059669); }
+.chat-header-avatar.patient { background: linear-gradient(135deg, #f59e0b, #d97706); }
+
+.chat-header-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.chat-header-name {
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.chat-header-name i { color: #3b82f6; font-size: 0.9rem; }
+
+.chat-header-status {
+    font-size: 0.8rem;
+    color: #94a3b8;
+}
+
+.chat-header-status.online { color: #22c55e; }
+
+.chat-header-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.btn-header-action {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #e2e8f0;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: all 0.2s;
+}
+
+.btn-header-action:hover {
+    background: #3b82f6;
+    color: #fff;
+}
+
+/* Chat Messages */
+.chat-messages {
+    flex: 1;
+    padding: 1.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.chat-no-messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #94a3b8;
+}
+
+.chat-no-messages i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #cbd5e1;
+}
+
+.chat-message {
+    display: flex;
+    max-width: 70%;
+}
+
+.chat-message.mine {
+    align-self: flex-end;
+}
+
+.chat-message.theirs {
+    align-self: flex-start;
+}
+
+.message-bubble {
+    padding: 0.75rem 1rem;
+    border-radius: 16px;
+    max-width: 100%;
+}
+
+.chat-message.mine .message-bubble {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+}
+
+.chat-message.theirs .message-bubble {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-bottom-left-radius: 4px;
+}
+
+.message-text {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.message-time {
+    font-size: 0.7rem;
+    opacity: 0.7;
+    margin-top: 0.25rem;
+    text-align: right;
+}
+
+/* Chat Input */
+.chat-input-area {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.chat-input-area form {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.chat-input-area input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.chat-input-area input:focus {
+    border-color: #3b82f6;
+}
+
+.btn-send {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.btn-send:hover {
+    transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .chat-inline-container {
+        grid-template-columns: 1fr;
+        height: calc(100vh - 120px);
+    }
+    
+    .chat-sidebar {
+        display: none;
+    }
+    
+    .chat-main {
+        border-radius: 0;
+    }
 }
 </style>

@@ -269,7 +269,7 @@ if (!$isEmbed) {
                         <td><span class="date-text"><?php echo date('d/m/Y', strtotime($p['created_at'])); ?><br><small><?php echo date('H:i', strtotime($p['created_at'])); ?></small></span></td>
                         <td>
                             <div class="action-buttons">
-                                <a href="view_post.php?id=<?php echo (int)$p['id']; ?>" class="action-btn info" title="Xem"><i class="bi bi-eye"></i></a>
+                                <a href="view_post.php?id=<?php echo (int)$p['id']; ?>&embed=1" class="action-btn info" title="Xem"><i class="bi bi-eye"></i></a>
                                 <form method="post" class="d-inline" onsubmit="return confirm('Xác nhận xóa bài viết này?');">
                                     <input type="hidden" name="action" value="delete_post_admin">
                                     <input type="hidden" name="post_id" value="<?php echo (int)$p['id']; ?>">

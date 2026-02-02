@@ -18,9 +18,33 @@ if (($_SESSION['role'] ?? '') !== 'student') {
 refresh_student_verification_flag();
 
 if (is_student_verified()) {
+    // Kiểm tra quyền đăng tin
+    $canPostStmt = $pdo->prepare('SELECT can_post FROM users WHERE id = ?');
+    $canPostStmt->execute([$_SESSION['user_id']]);
+    $canPost = (int)$canPostStmt->fetchColumn();
+    
     if ($isEmbed) {
-        echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="padding:2rem;font-family:sans-serif;"><div style="background:#dcfce7;color:#166534;padding:1rem;border-radius:8px;"><strong>✓ Tài khoản đã được xác minh!</strong><br>Bạn có thể đăng tin ngay bây giờ.</div></body></html>';
-        exit;
+        if ($canPost) {
+            // Đã xác minh và có quyền đăng tin -> redirect đến trang đăng tin
+            header('Location: create_application.php?embed=1');
+            exit;
+        } else {
+            // Đã xác minh nhưng chưa có quyền đăng tin
+            echo '<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="padding:2rem;font-family:sans-serif;">
+            <div style="background:#dcfce7;color:#166534;padding:1.5rem;border-radius:12px;margin-bottom:1rem;">
+                <strong>✓ Tài khoản đã được xác minh!</strong>
+            </div>
+            <div style="background:#fef3c7;color:#92400e;padding:1.5rem;border-radius:12px;">
+                <strong>⚠ Chưa có quyền đăng tin</strong><br>
+                Vui lòng gửi yêu cầu cấp quyền đăng tin để có thể đăng bài.
+                <br><br>
+                <a href="request_posting_permission.php?embed=1" style="display:inline-block;background:#f59e0b;color:#fff;padding:0.75rem 1.5rem;border-radius:8px;text-decoration:none;font-weight:600;">
+                    Xin cấp quyền đăng tin
+                </a>
+            </div>
+            </body></html>';
+            exit;
+        }
     }
     header('Location: dashboard_student.php');
     exit;

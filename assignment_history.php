@@ -21,7 +21,7 @@ try {
             . "FROM messages m "
             . "JOIN posts p ON p.id = m.post_id "
             . "JOIN users u ON u.id = p.user_id "
-            . "WHERE m.to_user = ? "
+            . "WHERE m.receiver_id = ? "
             . "AND m.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) "
             . "AND m.message LIKE ? "
             . "ORDER BY m.created_at DESC";
@@ -32,8 +32,8 @@ try {
         $sql = "SELECT m.created_at AS accepted_at, p.id AS post_id, p.title, u.name AS counterparty_name, u.email AS counterparty_email, u.phone AS counterparty_phone "
             . "FROM messages m "
             . "JOIN posts p ON p.id = m.post_id "
-            . "JOIN users u ON u.id = m.to_user "
-            . "WHERE m.from_user = ? "
+            . "JOIN users u ON u.id = m.receiver_id "
+            . "WHERE m.sender_id = ? "
             . "AND m.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH) "
             . "AND m.message LIKE ? "
             . "ORDER BY m.created_at DESC";

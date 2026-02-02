@@ -32,7 +32,7 @@ try {
     $pdo->beginTransaction();
     
     // Delete related data
-    $pdo->prepare('DELETE FROM messages WHERE from_user = ? OR to_user = ?')->execute([$userId, $userId]);
+    $pdo->prepare('DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?')->execute([$userId, $userId]);
     $pdo->prepare('DELETE FROM favorites WHERE user_id = ?')->execute([$userId]);
     $pdo->prepare('DELETE FROM ratings WHERE rater_id = ? OR rated_id = ?')->execute([$userId, $userId]);
     $pdo->prepare('DELETE FROM posts WHERE user_id = ?')->execute([$userId]);

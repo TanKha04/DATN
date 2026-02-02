@@ -309,6 +309,128 @@ main.dashboard-main > div.dashboard-topbar {
     color: #fcd34d;
 }
 
+/* Status Cards */
+.status-card {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+    background: #fff;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    border-left: 4px solid;
+}
+
+.status-card.status-warning {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #fffbeb 0%, #fff 100%);
+}
+
+.status-card.status-info {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #fff 100%);
+}
+
+.status-card.status-success {
+    border-color: #10b981;
+    background: linear-gradient(135deg, #ecfdf5 0%, #fff 100%);
+}
+
+.status-card .status-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.status-card.status-warning .status-icon {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.status-card.status-info .status-icon {
+    background: #dbeafe;
+    color: #2563eb;
+}
+
+.status-card.status-success .status-icon {
+    background: #d1fae5;
+    color: #059669;
+}
+
+.status-card .status-content {
+    flex: 1;
+}
+
+.status-card .status-title {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1e293b;
+}
+
+.status-card .status-text {
+    margin: 0;
+    font-size: 0.875rem;
+    color: #64748b;
+}
+
+.status-card .status-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+}
+
+.status-card .status-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    color: #fff;
+}
+
+.status-card .status-btn-info {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.status-card .status-btn-info:hover {
+    box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+}
+
+.status-card .status-btn-success {
+    background: linear-gradient(135deg, #10b981, #059669);
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.status-card .status-btn-success:hover {
+    box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+
+@media (max-width: 768px) {
+    .status-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    .status-card .status-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
 .welcome-hero-desc {
     color: rgba(255,255,255,0.8);
     font-size: 1rem;
@@ -732,10 +854,14 @@ function showSection(sectionId, title) {
             // Load iframe nếu có
             var iframe = section.querySelector('iframe');
             if (iframe) {
+                // Kiểm tra trạng thái xác minh và quyền đăng tin
+                var isVerified = <?php echo $verifiedFlag ? 'true' : 'false'; ?>;
+                var canPost = <?php echo $canPost ? 'true' : 'false'; ?>;
+                
                 var iframeSrc = {
                     'create-post': 'create_application.php?embed=1',
                     'request-verification': 'request_verification.php?embed=1',
-                    'verify': 'request_verification.php?embed=1',
+                    'verify': (isVerified && canPost) ? 'create_application.php?embed=1' : 'request_verification.php?embed=1',
                     'my-posts': 'index.php?my_posts=1&embed=1',
                     'history': 'assignment_history.php?embed=1',
                     'favorites': 'favorites.php?embed=1',
@@ -1093,9 +1219,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span>Tạo tin mới</span>
                 </a>
                 <?php else: ?>
-                <a href="#" class="sidebar-menu-item" data-section="verify" onclick="return showSection('verify', 'Xác minh để đăng tin')">
-                    <i class="bi bi-shield-check"></i>
-                    <span>Xác minh để đăng</span>
+                <a href="#" class="sidebar-menu-item" data-section="verify" onclick="return showSection('verify', '<?php echo ($verifiedFlag && $canPost) ? 'Đăng tin ứng tuyển' : 'Xác minh để đăng tin'; ?>')">
+                    <i class="bi bi-<?php echo ($verifiedFlag && $canPost) ? 'plus-circle' : 'shield-check'; ?>"></i>
+                    <span><?php echo ($verifiedFlag && $canPost) ? 'Đăng tin' : 'Xác minh để đăng'; ?></span>
                 </a>
                 <?php endif; ?>
                 <a href="#" class="sidebar-menu-item" data-section="my-posts" onclick="return showSection('my-posts', 'Tin của tôi')">
@@ -6501,9 +6627,12 @@ document.addEventListener('DOMContentLoaded', function() {
             <i class="fas fa-check-double"></i>
         </div>
         <div class="status-content">
-            <h6 class="status-title">Quyền đăng tin</h6>
+            <h6 class="status-title">Đăng tin ứng tuyển</h6>
             <p class="status-text">Bạn đã được cấp quyền đăng tin. Hãy tạo tin ứng tuyển ngay!</p>
         </div>
+        <a href="create_application.php" class="status-btn status-btn-success">
+            <i class="fas fa-plus-circle me-1"></i> Đăng tin ngay
+        </a>
     </div>
 <?php endif; ?>
 

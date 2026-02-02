@@ -524,56 +524,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendBtn = document.getElementById('chatbot-send');
     const quickReplies = document.querySelectorAll('.quick-reply');
     
-    // Chatbot responses database
-    const responses = {
-        greeting: {
-            keywords: ['xin chào', 'hello', 'hi', 'chào', 'hey', 'alo'],
-            response: 'Xin chào! 👋 Tôi là trợ lý ảo của hệ thống Kết nối Y tế. Tôi có thể giúp bạn với các câu hỏi về dịch vụ chăm sóc sức khỏe, cách đăng tin tuyển dụng, hoặc tìm sinh viên y khoa phù hợp. Bạn cần hỗ trợ gì?'
-        },
-        post_help: {
-            keywords: ['đăng tin', 'tạo tin', 'đăng bài', 'tuyển dụng', 'tìm người', 'đăng'],
-            response: 'Để đăng tin tuyển dụng sinh viên y khoa:<br><br>1️⃣ Nhấn nút <b>"Tạo tin tuyển dụng"</b> trên dashboard<br>2️⃣ Điền đầy đủ thông tin: tiêu đề, mô tả công việc, khu vực, mức lương đề xuất<br>3️⃣ Nhấn <b>"Đăng tin"</b><br><br>Sau khi đăng, sinh viên sẽ có thể xem và liên hệ với bạn. 📢'
-        },
-        find_student: {
-            keywords: ['tìm sinh viên', 'sinh viên y', 'chăm sóc', 'hỗ trợ y tế', 'tìm sv', 'sv'],
-            response: 'Để tìm sinh viên y khoa phù hợp:<br><br>1️⃣ Xem danh sách <b>"Tin ứng tuyển"</b> trên trang chủ<br>2️⃣ Lọc theo khu vực và chuyên khoa<br>3️⃣ Xem hồ sơ và đánh giá của sinh viên<br>4️⃣ Nhấn <b>"Liên hệ"</b> để nhắn tin trực tiếp<br><br>Bạn cũng có thể đăng tin tuyển dụng để sinh viên chủ động liên hệ. 🔍'
-        },
-        payment: {
-            keywords: ['thanh toán', 'giá', 'chi phí', 'phí', 'tiền', 'trả', 'miễn phí'],
-            response: 'Hệ thống Kết nối Y tế hoàn toàn <b>MIỄN PHÍ</b> cho việc đăng tin và kết nối! 🎉<br><br>Về chi phí dịch vụ chăm sóc, bạn và sinh viên sẽ tự thỏa thuận trực tiếp. Chúng tôi khuyến nghị thảo luận rõ ràng về mức thù lao trước khi bắt đầu hợp tác.'
-        },
-        safety: {
-            keywords: ['an toàn', 'xác minh', 'tin cậy', 'uy tín', 'lừa đảo', 'bảo mật'],
-            response: 'Để đảm bảo an toàn:<br><br>✅ Chỉ liên hệ với sinh viên đã được <b>XÁC MINH</b> (có dấu tick xanh)<br>✅ Kiểm tra đánh giá và nhận xét từ người dùng khác<br>✅ Trao đổi qua hệ thống tin nhắn trước khi gặp mặt<br>✅ Báo cáo ngay nếu phát hiện hành vi đáng ngờ<br><br>Nếu gặp vấn đề, hãy liên hệ bộ phận hỗ trợ. 🛡️'
-        },
-        contact: {
-            keywords: ['liên hệ', 'hỗ trợ', 'support', 'giúp đỡ', 'admin', 'hotline'],
-            response: 'Bạn có thể liên hệ hỗ trợ qua:<br><br>📧 <b>Email:</b> tramtankhatv@gmail.com<br>💬 <b>Tin nhắn hệ thống:</b> Vào mục "Thông báo" để xem tin từ Admin<br>📝 <b>Gửi yêu cầu:</b> Vào trang "Hỗ trợ" để gửi phản hồi<br><br>Chúng tôi sẽ phản hồi trong vòng 24 giờ làm việc. 📞'
-        },
-        rating: {
-            keywords: ['đánh giá', 'review', 'nhận xét', 'sao', 'rating', 'vote'],
-            response: 'Hệ thống đánh giá giúp xây dựng uy tín:<br><br>⭐ Sau khi hoàn thành dịch vụ, bạn có thể đánh giá sinh viên<br>⭐ Đánh giá từ 1-5 sao kèm nhận xét<br>⭐ Đánh giá tốt giúp sinh viên được nhiều người tin tưởng<br><br>Hãy đánh giá công bằng để giúp cộng đồng! ⭐'
-        },
-        message: {
-            keywords: ['tin nhắn', 'nhắn tin', 'chat', 'trò chuyện', 'message', 'inbox'],
-            response: 'Để nhắn tin với sinh viên:<br><br>1️⃣ Vào trang hồ sơ của sinh viên<br>2️⃣ Nhấn nút <b>"Nhắn tin"</b><br>3️⃣ Hoặc vào mục <b>"Tin nhắn"</b> trên menu để xem tất cả cuộc trò chuyện<br><br>Tin nhắn được lưu trữ an toàn trên hệ thống. 💬'
-        },
-        menu: {
-            keywords: ['menu', 'danh sách', 'chức năng', 'help', 'trợ giúp', 'hướng dẫn'],
-            response: '📋 <b>DANH SÁCH CHỨC NĂNG:</b><br><br>1️⃣ <b>Đăng tin tuyển dụng</b> - Tìm sinh viên chăm sóc<br>2️⃣ <b>Tìm sinh viên</b> - Xem danh sách ứng viên<br>3️⃣ <b>Tin nhắn</b> - Liên hệ trực tiếp<br>4️⃣ <b>Đánh giá</b> - Nhận xét sau dịch vụ<br>5️⃣ <b>Yêu thích</b> - Lưu bài đăng quan tâm<br>6️⃣ <b>Hỗ trợ</b> - Liên hệ admin<br><br>Gõ từ khóa để biết thêm chi tiết!'
-        },
-        thanks: {
-            keywords: ['cảm ơn', 'thank', 'thanks', 'tks', 'cam on'],
-            response: 'Không có gì! 😊 Rất vui được hỗ trợ bạn. Nếu có thêm câu hỏi nào, đừng ngại hỏi tôi nhé! 💙'
-        },
-        bye: {
-            keywords: ['tạm biệt', 'bye', 'goodbye', 'chào tạm biệt'],
-            response: 'Tạm biệt! 👋 Chúc bạn có trải nghiệm tốt với hệ thống Kết nối Y tế. Hẹn gặp lại! 💙'
-        }
-    };
-    
-    const defaultResponse = 'Xin lỗi, tôi chưa hiểu câu hỏi của bạn. 🤔<br><br>Bạn có thể hỏi về:<br>• Cách đăng tin tuyển dụng<br>• Tìm sinh viên y khoa<br>• Hệ thống đánh giá<br>• Cách nhắn tin<br>• Vấn đề an toàn<br>• Liên hệ hỗ trợ<br><br>Hoặc gõ <b>"menu"</b> để xem danh sách chức năng.';
-
     // Toggle chat window
     toggle.addEventListener('click', function() {
         widget.classList.toggle('active');
@@ -651,24 +601,30 @@ document.addEventListener('DOMContentLoaded', function() {
         if (typing) typing.remove();
     }
     
-    // Send message
+    // Send message (AI integration)
     function sendMessage() {
         const message = input.value.trim();
         if (!message) return;
-        
         // Add user message
         addMessage(message, true);
         input.value = '';
-        
         // Show typing indicator
         showTyping();
-        
-        // Simulate response delay
-        setTimeout(function() {
+        // Gửi lên AI server
+        fetch('ai_chat.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({ message })
+        })
+        .then(res => res.text())
+        .then(aiReply => {
             hideTyping();
-            const response = findResponse(message);
-            addMessage(response, false);
-        }, 800 + Math.random() * 700);
+            addMessage(aiReply, false);
+        })
+        .catch(() => {
+            hideTyping();
+            addMessage('Xin lỗi, hệ thống AI đang bận. Vui lòng thử lại sau.', false);
+        });
     }
     
     // Event listeners

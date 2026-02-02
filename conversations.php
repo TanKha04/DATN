@@ -641,10 +641,7 @@ if (!$isEmbed) {
                             <span class="badge bg-danger ms-auto"><?php echo $pendingCount; ?></span>
                         <?php endif; ?>
                     </a>
-                    <a href="view_messages.php?from_admin=1" class="sidebar-nav-link">
-                        <i class="bi bi-bell-fill"></i> Tin nhắn hệ thống
-                    </a>
-                    <a href="index.php" class="sidebar-nav-link">
+                    <a href="<?php echo ($_SESSION['role'] ?? '') === 'patient' ? 'dashboard_patient.php' : 'dashboard_student.php'; ?>" class="sidebar-nav-link" target="_top">
                         <i class="bi bi-arrow-left"></i> Quay lại trang chủ
                     </a>
                 </div>
@@ -693,11 +690,8 @@ if (!$isEmbed) {
                             <h4>Chưa có cuộc trò chuyện nào</h4>
                             <p>Bạn có thể bắt đầu trò chuyện bằng cách nhấp vào "Liên hệ người đăng" trên các bài đăng hoặc tìm kiếm người dùng khác để nhắn tin.</p>
                             <div class="empty-actions">
-                                <a href="index.php?type=recruitment#posts" class="empty-btn empty-btn-primary">
-                                    <i class="fas fa-search"></i> Tìm tin tuyển dụng
-                                </a>
-                                <a href="index.php?type=application#posts" class="empty-btn empty-btn-outline">
-                                    <i class="fas fa-users"></i> Xem tin ứng tuyển
+                                <a href="friends.php" class="empty-btn empty-btn-primary">
+                                    <i class="bi bi-chat-dots-fill"></i> Nhắn tin với bạn bè
                                 </a>
                             </div>
                         </div>

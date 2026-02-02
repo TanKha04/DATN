@@ -1,0 +1,57 @@
+PHÂN TÍCH SƠ ĐỒ ERD (Entity Relationship Diagram)
+=================================================
+
+1. BẢNG TRUNG TÂM: USERS
+   - Lưu thông tin người dùng (bệnh nhân, sinh viên, admin)
+   - Các trường: id, name, email, password, role, phone, school, verified, can_post...
+
+2. CÁC BẢNG VÀ CHỨC NĂNG:
+
+   POSTS (Bài đăng)
+   - Lưu bài đăng tuyển dụng/ứng tuyển
+   - Quan hệ: 1 user -> nhiều bài đăng
+
+   COMMENTS (Bình luận)
+   - Lưu bình luận trên bài đăng
+   - Quan hệ: 1 user -> nhiều comment
+
+   MESSAGES (Tin nhắn)
+   - Lưu tin nhắn giữa các user
+   - Quan hệ: User gửi <-> User nhận
+
+   APPOINTMENTS (Lịch hẹn)
+   - Lưu lịch hẹn chăm sóc
+   - Quan hệ: Liên kết bệnh nhân - sinh viên
+
+   RATINGS (Đánh giá)
+   - Lưu đánh giá sau khi hoàn thành
+   - Quan hệ: 1 user đánh giá -> 1 user khác
+
+   FRIENDSHIPS (Kết bạn)
+   - Lưu quan hệ bạn bè giữa các user
+   - Quan hệ: User <-> User
+
+   VERIFICATIONS (Xác minh)
+   - Lưu yêu cầu xác minh tài khoản sinh viên
+   - Quan hệ: 1 user -> nhiều yêu cầu xác minh
+
+   POSTING_REQUESTS (Yêu cầu đăng bài)
+   - Lưu yêu cầu quyền đăng bài
+   - Quan hệ: 1 user -> nhiều yêu cầu
+
+   REPORTS (Báo cáo)
+   - Lưu báo cáo vi phạm
+   - Quan hệ: User báo cáo -> User/Post bị báo cáo
+
+   NOTIFICATIONS (Thông báo)
+   - Lưu thông báo hệ thống
+   - Quan hệ: 1 user -> nhiều thông báo
+
+   FAVORITES (Yêu thích)
+   - Lưu bài đăng yêu thích
+   - Quan hệ: 1 user -> nhiều bài yêu thích
+
+3. LUỒNG HOẠT ĐỘNG CHÍNH:
+   Bước 1: Bệnh nhân đăng bài (POSTS) -> Sinh viên ứng tuyển
+   Bước 2: Hai bên nhắn tin (MESSAGES) -> Đặt lịch hẹn (APPOINTMENTS)
+   Bước 3: Sau khi hoàn thành -> Đánh giá (RATINGS)

@@ -36,14 +36,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Mật khẩu cần ít nhất 6 ký tự.';
         } else {
             // Check existing email or username
-            $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? OR username = ?');
-            $stmt->execute([$email, $username]);
-            if ($stmt->fetch()) {
-                $error = 'Email hoặc tên tài khoản đã được sử dụng.';
-            } else {
-                $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare('INSERT INTO users (name, email, username, password, role, can_post, email_verified) VALUES (?, ?, ?, ?, ?, 1, 0)');
-                $stmt->execute([$username, $email, $username, $hash, 'patient']);
+            try {
+                $stmt = $pdo->prepare('SELECT id, email, username FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?)');
+                $stmt->execute([$email, $username]);
+                $existingUser = $stmt->fetch();
+                if ($existingUser) {
+                    if (strtolower($existingUser['email']) === strtolower($email)) {
+                        $error = 'Email "' . htmlspecialchars($email) . '" đã được đăng ký bởi tài khoản khác.';
+                    } else {
+                        $error = 'Tên tài khoản "' . htmlspecialchars($username) . '" đã tồn tại. Vui lòng chọn tên khác.';
+                    }
+                } else {
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare('INSERT INTO users (name, email, username, password, role, can_post, email_verified) VALUES (?, ?, ?, ?, ?, 1, 0)');
+                    $stmt->execute([$username, $email, $username, $hash, 'patient']);
                 $userId = $pdo->lastInsertId();
                 try {
                     $emailSent = issue_email_verification($pdo, (int)$userId, $email, $username);
@@ -58,6 +64,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $successMessage = 'Đăng ký thành công, nhưng chưa gửi được email xác minh. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
                     $_POST = [];
                 }
+                }
+            } catch (PDOException $e) {
+                error_log('Register patient error: ' . $e->getMessage());
+                $error = 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.';
             }
         }
     } elseif ($userType === 'student') {
@@ -93,11 +103,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'Mật khẩu cần ít nhất 6 ký tự.';
         } else {
             // Check existing email, username or student_id
-            $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? OR username = ? OR student_id = ?');
-            $stmt->execute([$email, $username, $studentCode]);
-            if ($stmt->fetch()) {
-                $error = 'Email, tên tài khoản hoặc mã số sinh viên đã được sử dụng.';
-            } else {
+            try {
+                $stmt = $pdo->prepare('SELECT id, email, username, student_id FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) OR student_id = ?');
+                $stmt->execute([$email, $username, $studentCode]);
+                $existingUser = $stmt->fetch();
+                if ($existingUser) {
+                    if (strtolower($existingUser['email']) === strtolower($email)) {
+                        $error = 'Email "' . htmlspecialchars($email) . '" đã được đăng ký bởi tài khoản khác.';
+                    } elseif (strtolower($existingUser['username']) === strtolower($username)) {
+                        $error = 'Tên tài khoản "' . htmlspecialchars($username) . '" đã tồn tại. Vui lòng chọn tên khác.';
+                    } else {
+                        $error = 'Mã số sinh viên "' . htmlspecialchars($studentCode) . '" đã được đăng ký.';
+                    }
+                } else {
                 $hash = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare('INSERT INTO users (name, email, username, password, role, school, class_code, student_id, can_post, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0)');
                 $stmt->execute([$username, $email, $username, $hash, 'student', $school, $classCode, $studentCode]);
@@ -115,6 +133,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $successMessage = 'Đăng ký thành công, nhưng chưa gửi được email xác minh. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.';
                     $_POST = [];
                 }
+                }
+            } catch (PDOException $e) {
+                error_log('Register student error: ' . $e->getMessage());
+                $error = 'Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.';
             }
         }
     } else {

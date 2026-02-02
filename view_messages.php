@@ -377,7 +377,7 @@ if (window.self !== window.top) {
                 <h5>Tin nhắn</h5>
                 <p>Quản lý tin nhắn và thông báo của bạn</p>
                 <div class="sidebar-nav">
-                    <a href="index.php" class="sidebar-link">
+                    <a href="<?php echo ($_SESSION['role'] ?? '') === 'patient' ? 'dashboard_patient.php' : 'dashboard_student.php'; ?>" class="sidebar-link" target="_top">
                         <i class="fas fa-arrow-left"></i> Quay lại trang chủ
                     </a>
                     <a href="conversations.php<?php echo $isEmbed ? '?embed=1' : ''; ?>" class="sidebar-link" <?php echo $isEmbed ? 'target="_self"' : ''; ?>>

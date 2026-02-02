@@ -236,6 +236,8 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
 .post-card-tag.type-application { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #047857; }
 .post-card-tag.area { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
 .post-card-tag.category { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); color: #7c3aed; }
+.post-card-location { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #16a34a; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-radius: 8px; width: fit-content; margin-bottom: 0.75rem; }
+.post-card-location i { font-size: 0.9rem; }
 .post-card-content { color: #475569; font-size: 0.95rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 1.25rem; }
 .post-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #f1f5f9; }
 .post-card-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border-radius: 10px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25); }
@@ -301,6 +303,7 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
             <?php foreach ($posts as $p): ?>
                 <article class="post-card-new">
                     <div class="post-card-body">
+                        <!-- Header: Title + Status -->
                         <div class="post-card-header">
                             <h3 class="post-card-title">
                                 <a href="view_post.php?id=<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['title']); ?></a>
@@ -312,6 +315,7 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
                             <span class="post-card-status <?php echo $status; ?>"><?php echo $statusText[$status] ?? $status; ?></span>
                         </div>
                         
+                        <!-- Tags: Type + Category -->
                         <div class="post-card-tags">
                             <?php $typeClass = $p['type'] === 'recruitment' ? 'type-recruitment' : 'type-application'; ?>
                             <span class="post-card-tag <?php echo $typeClass; ?>">
@@ -321,11 +325,17 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
                             <?php if (!empty($p['category'])): ?>
                                 <span class="post-card-tag category"><?php echo htmlspecialchars($p['category']); ?></span>
                             <?php endif; ?>
-                            <?php if (!empty($p['area'])): ?>
-                                <span class="post-card-tag area"><i class="bi bi-geo-alt"></i> <?php echo htmlspecialchars($p['area']); ?></span>
-                            <?php endif; ?>
                         </div>
                         
+                        <!-- Location (riêng dòng) -->
+                        <?php if (!empty($p['area'])): ?>
+                        <div class="post-card-location">
+                            <i class="bi bi-geo-alt-fill"></i>
+                            <span><?php echo htmlspecialchars($p['area']); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        
+                        <!-- Author + Online Status -->
                         <div class="post-card-meta">
                             <span class="post-card-meta-item">
                                 <i class="bi bi-person"></i>
@@ -340,8 +350,10 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
                             </span>
                         </div>
                         
+                        <!-- Description -->
                         <p class="post-card-content"><?php echo htmlspecialchars(strip_tags($p['content'])); ?></p>
                         
+                        <!-- Footer: Button + Time -->
                         <div class="post-card-footer">
                             <a href="view_post.php?id=<?php echo $p['id']; ?>" class="post-card-btn">
                                 <i class="bi bi-eye"></i> Xem chi tiết

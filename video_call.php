@@ -439,11 +439,47 @@ async function initiateCall() {
     try {
         updateWaitingStatus('Đang truy cập camera...');
         
-        // Lấy media stream
-        localStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true
-        });
+        // Kiểm tra xem trình duyệt có hỗ trợ getUserMedia không
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error('Trình duyệt không hỗ trợ video call. Vui lòng sử dụng Chrome, Firefox hoặc Edge.');
+        }
+        
+        // Thử lấy media stream với fallback
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({
+                video: { 
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
+                    facingMode: 'user'
+                },
+                audio: {
+                    echoCancellation: true,
+                    noiseSuppression: true
+                }
+            });
+        } catch (mediaError) {
+            console.log('Full media failed, trying video only:', mediaError);
+            // Thử chỉ video nếu audio fail
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: true,
+                    audio: false
+                });
+                alert('Không thể truy cập microphone. Cuộc gọi sẽ không có âm thanh.');
+            } catch (videoError) {
+                console.log('Video only failed, trying audio only:', videoError);
+                // Thử chỉ audio nếu video fail
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: false,
+                        audio: true
+                    });
+                    alert('Không thể truy cập camera. Cuộc gọi sẽ chỉ có âm thanh.');
+                } catch (audioError) {
+                    throw mediaError; // Throw lỗi gốc
+                }
+            }
+        }
         
         // Hiển thị local video
         document.getElementById('localVideo').srcObject = localStream;
@@ -739,14 +775,37 @@ function startTimer() {
 }
 
 function handleMediaError(error) {
+    console.error('Media error:', error.name, error.message);
     let msg = 'Không thể truy cập camera/microphone.';
-    if (error.name === 'NotAllowedError') {
+    let instructions = '';
+    
+    if (error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError') {
         msg = 'Bạn cần cho phép truy cập camera và microphone.';
-    } else if (error.name === 'NotFoundError') {
-        msg = 'Không tìm thấy camera hoặc microphone.';
+        instructions = '\n\nHướng dẫn:\n' +
+            '1. Nhấn vào biểu tượng ổ khóa/camera trên thanh địa chỉ\n' +
+            '2. Chọn "Cho phép" cho Camera và Microphone\n' +
+            '3. Tải lại trang và thử lại';
+    } else if (error.name === 'NotFoundError' || error.name === 'DevicesNotFoundError') {
+        msg = 'Không tìm thấy camera hoặc microphone trên thiết bị này.';
+        instructions = '\n\nVui lòng kiểm tra:\n' +
+            '1. Thiết bị có camera/microphone không\n' +
+            '2. Thiết bị đã được kết nối đúng cách\n' +
+            '3. Không có ứng dụng khác đang sử dụng camera';
+    } else if (error.name === 'NotReadableError' || error.name === 'TrackStartError') {
+        msg = 'Camera/microphone đang được sử dụng bởi ứng dụng khác.';
+        instructions = '\n\nVui lòng:\n' +
+            '1. Đóng các ứng dụng khác đang dùng camera (Zoom, Skype, Teams...)\n' +
+            '2. Tải lại trang và thử lại';
+    } else if (error.name === 'OverconstrainedError') {
+        msg = 'Camera không hỗ trợ cấu hình yêu cầu.';
+    } else if (error.name === 'SecurityError') {
+        msg = 'Lỗi bảo mật. Trang web cần chạy trên HTTPS.';
+    } else if (error.message) {
+        msg = error.message;
     }
+    
     updateWaitingStatus(msg);
-    alert(msg);
+    alert(msg + instructions);
 }
 
 // Cleanup
@@ -765,11 +824,45 @@ document.addEventListener('DOMContentLoaded', async () => {
         try {
             updateWaitingStatus('Đang kết nối với ' + otherUserName + '...');
             
-            // Lấy media stream
-            localStream = await navigator.mediaDevices.getUserMedia({
-                video: true,
-                audio: true
-            });
+            // Kiểm tra xem trình duyệt có hỗ trợ getUserMedia không
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                throw new Error('Trình duyệt không hỗ trợ video call. Vui lòng sử dụng Chrome, Firefox hoặc Edge.');
+            }
+            
+            // Thử lấy media stream với fallback
+            try {
+                localStream = await navigator.mediaDevices.getUserMedia({
+                    video: { 
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    },
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true
+                    }
+                });
+            } catch (mediaError) {
+                console.log('Full media failed, trying video only:', mediaError);
+                try {
+                    localStream = await navigator.mediaDevices.getUserMedia({
+                        video: true,
+                        audio: false
+                    });
+                    alert('Không thể truy cập microphone. Cuộc gọi sẽ không có âm thanh.');
+                } catch (videoError) {
+                    console.log('Video only failed, trying audio only:', videoError);
+                    try {
+                        localStream = await navigator.mediaDevices.getUserMedia({
+                            video: false,
+                            audio: true
+                        });
+                        alert('Không thể truy cập camera. Cuộc gọi sẽ chỉ có âm thanh.');
+                    } catch (audioError) {
+                        throw mediaError;
+                    }
+                }
+            }
             
             // Hiển thị local video
             document.getElementById('localVideo').srcObject = localStream;

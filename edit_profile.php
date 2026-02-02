@@ -72,9 +72,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $params[] = $student_id;
         }
 
-        // Handle password change
-        if (!empty($password)) {
-            if ($password !== $password_confirm) {
+        // Handle password change - chỉ validate nếu người dùng thực sự muốn đổi mật khẩu
+        if (!empty($password) || !empty($password_confirm)) {
+            if (empty($password) || empty($password_confirm)) {
+                $error = 'Vui lòng nhập cả mật khẩu mới và xác nhận mật khẩu.';
+            } elseif ($password !== $password_confirm) {
                 $error = 'Mật khẩu xác nhận không khớp.';
             } elseif (strlen($password) < 6) {
                 $error = 'Mật khẩu phải có ít nhất 6 ký tự.';
@@ -692,12 +694,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toggle password fields
     const togglePassword = document.getElementById('togglePassword');
     const passwordFields = document.getElementById('passwordFields');
+    const passwordInput = document.querySelector('input[name="password"]');
+    const passwordConfirmInput = document.querySelector('input[name="password_confirm"]');
     
     togglePassword.addEventListener('change', function() {
         if (this.checked) {
             passwordFields.classList.add('show');
         } else {
             passwordFields.classList.remove('show');
+            // Xóa giá trị password khi tắt toggle để tránh lỗi validation
+            if (passwordInput) passwordInput.value = '';
+            if (passwordConfirmInput) passwordConfirmInput.value = '';
         }
     });
 

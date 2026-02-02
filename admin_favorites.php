@@ -22,14 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = 'Thiếu thông tin người dùng hoặc bài viết.';
             }
-        } elseif ($action === 'delete_post_favorites') {
+        } elseif ($action === 'hide_post') {
             $postId = (int)($_POST['post_id'] ?? 0);
             if ($postId > 0) {
-                $stmt = $pdo->prepare('DELETE FROM favorites WHERE post_id = ?');
+                $stmt = $pdo->prepare('UPDATE posts SET status = "closed" WHERE id = ?');
                 $stmt->execute([$postId]);
-                $success = 'Đã xóa toàn bộ lượt yêu thích của bài viết.';
+                $success = 'Đã ẩn bài viết thành công.';
             } else {
-                $error = 'Không xác định được bài viết cần xóa.';
+                $error = 'Không xác định được bài viết cần ẩn.';
             }
         } elseif ($action === 'clear_all_favorites') {
             $pdo->exec('DELETE FROM favorites');
@@ -238,8 +238,8 @@ require_once 'header.php';
             .fav-btn { width: 40px; height: 40px; border-radius: 10px; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; font-size: 1rem; }
             .fav-btn.delete { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; }
             .fav-btn.delete:hover { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; transform: scale(1.1); box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4); }
-            .fav-btn.delete-all { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
-            .fav-btn.delete-all:hover { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; transform: scale(1.1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
+            .fav-btn.hide { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #d97706; }
+            .fav-btn.hide:hover { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; transform: scale(1.1); box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); }
             @media (max-width: 991px) { .fav-filter-grid { grid-template-columns: 1fr 1fr; } }
             @media (max-width: 767px) { 
                 .fav-page { padding: 1rem; } 
@@ -309,12 +309,12 @@ require_once 'header.php';
                                                     <input type="hidden" name="action" value="delete_favorite">
                                                     <input type="hidden" name="user_id" value="<?php echo (int)($fav['user_id'] ?? 0); ?>">
                                                     <input type="hidden" name="post_id" value="<?php echo (int)($fav['post_id'] ?? 0); ?>">
-                                                    <button class="fav-btn delete" title="Xóa"><i class="bi bi-trash3"></i> Xóa</button>
+                                                    <button class="fav-btn delete" title="Xóa"><i class="bi bi-trash3"></i></button>
                                                 </form>
-                                                <form method="post" class="d-inline" onsubmit="return confirm('Xóa toàn bộ lượt yêu thích của bài viết này?');">
-                                                    <input type="hidden" name="action" value="delete_post_favorites">
+                                                <form method="post" class="d-inline" onsubmit="return confirm('Ẩn bài viết này?');">
+                                                    <input type="hidden" name="action" value="hide_post">
                                                     <input type="hidden" name="post_id" value="<?php echo (int)($fav['post_id'] ?? 0); ?>">
-                                                    <button class="fav-btn delete-all" title="Xóa theo bài viết"><i class="bi bi-trash3-fill"></i> Xóa bài</button>
+                                                    <button class="fav-btn hide" title="Ẩn bài viết"><i class="bi bi-eye-slash"></i></button>
                                                 </form>
                                             </div>
                                         </td>
