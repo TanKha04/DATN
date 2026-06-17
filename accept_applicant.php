@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+$action = trim($_POST['action'] ?? 'accept');
 $post_id = (int)($_POST['post_id'] ?? 0);
 $selected_user = (int)($_POST['selected_user'] ?? $_POST['user_id'] ?? $_POST['applicant_id'] ?? 0);
 $note = trim($_POST['note'] ?? '');
@@ -24,19 +25,49 @@ if (!$post_id || !$selected_user) {
     jsonError('Thiếu thông tin bài đăng hoặc người dùng.');
 }
 
-// fetch post and verify ownership
+// Fetch post and verify ownership
 $stmt = $pdo->prepare('SELECT * FROM posts WHERE id = ?');
 $stmt->execute([$post_id]);
 $post = $stmt->fetch(PDO::FETCH_ASSOC);
 if (!$post) {
     jsonError('Tin không tồn tại.');
 }
-if ($post['user_id'] != $_SESSION['user_id']) {
+if ((int)$post['user_id'] !== (int)$_SESSION['user_id']) {
     jsonError('Bạn không có quyền thực hiện thao tác này.');
 }
 
+// --- CASE 1: REJECT APPLICANT ---
+if ($action === 'reject') {
+    // Lấy thông tin người bị từ chối
+    $userStmt = $pdo->prepare('SELECT name FROM users WHERE id = ?');
+    $userStmt->execute([$selected_user]);
+    $targetUser = $userStmt->fetch();
+
+    if (!$targetUser) {
+        jsonError('Người dùng không tồn tại.');
+    }
+
+    // Gửi tin nhắn thông báo từ chối
+    if (empty($customMessage)) {
+        $customMessage = 'Cảm ơn bạn đã quan tâm đến tin "' . ($post['title'] ?? '') . '". Rất tiếc vị trí này đã có người phù hợp hơn. Chúc bạn may mắn!';
+    }
+
+    try {
+        $insertMsg = $pdo->prepare('INSERT INTO messages (sender_id, receiver_id, post_id, message, created_at) VALUES (?, ?, ?, ?, NOW())');
+        $insertMsg->execute([$_SESSION['user_id'], $selected_user, $post_id, $customMessage]);
+        
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode(['success' => true, 'message' => 'Đã gửi thông báo từ chối.'], JSON_UNESCAPED_UNICODE);
+        exit;
+    } catch (Throwable $e) {
+        error_log('reject_applicant error: ' . $e->getMessage());
+        jsonError('Không thể gửi tin nhắn từ chối.');
+    }
+}
+
+// --- CASE 2: ACCEPT APPLICANT (DEFAULT) ---
 try {
-    // mark post as taken
+    // Mark post as taken
     $u = $pdo->prepare('UPDATE posts SET status = ? WHERE id = ?');
     $u->execute(['taken', $post_id]);
     if ($u->rowCount() === 0) {
@@ -45,7 +76,6 @@ try {
         $check->execute([$post_id]);
         $current = $check->fetchColumn();
         if ($current === 'taken') {
-            // already taken
             $_SESSION['flash_error'] = 'Tin này đã được nhận trước đó.';
             throw new Exception('Post already taken');
         }
@@ -70,13 +100,13 @@ try {
         }
     }
 
-    // insert a message to notify the selected user
+    // Insert a message to notify the selected user
     if (!empty($customMessage)) {
         $msg = $customMessage;
     } else {
         $msg = 'Bạn đã được chọn nhận việc cho tin: ' . ($post['title'] ?? '') . '. ' . ($note ? "\nGhi chú: " . $note : '');
     }
-    $ins = $pdo->prepare('INSERT INTO messages (sender_id,receiver_id,post_id,message) VALUES (?,?,?,?)');
+    $ins = $pdo->prepare('INSERT INTO messages (sender_id,receiver_id,post_id,message,created_at) VALUES (?,?,?,?,NOW())');
     $ins->execute([$_SESSION['user_id'], $selected_user, $post_id, $msg]);
 
     // Try to persist the assigned user on the post (add column if missing)
@@ -86,7 +116,6 @@ try {
         $colChk->execute();
         $hasAssigned = (int)$colChk->fetchColumn() > 0;
         if (!$hasAssigned) {
-            // add column (nullable)
             $pdo->exec("ALTER TABLE posts ADD COLUMN assigned_to INT NULL AFTER user_id");
         }
         // update the post with assigned_to
@@ -94,7 +123,6 @@ try {
         $a->execute([$selected_user, $post_id]);
     } catch (Throwable $e) {
         error_log('accept applicant assigned_to update failed: ' . $e->getMessage());
-        // not fatal for user flow
     }
 
     $_SESSION['flash_success'] = 'Đã chọn người nhận việc và thông báo đã được gửi.';
@@ -110,5 +138,3 @@ unset($_SESSION['flash_success'], $_SESSION['flash_error']);
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode(['success' => $success, 'message' => $message, 'post_id' => $post_id, 'status' => $success ? 'taken' : 'error'], JSON_UNESCAPED_UNICODE);
 exit;
-
-?>

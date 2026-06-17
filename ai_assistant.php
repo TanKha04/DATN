@@ -666,8 +666,8 @@ function submitSymptoms(){
   closeSymptomModal();
   addMsg('Kiểm tra triệu chứng: '+symptoms.join(', ')+(details?' - '+details:''),true);
   showTyping();
-  fetch('api/ai_symptom_check.php',{method:'POST',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({symptoms,details,age,gender,duration})})
+  fetch('api/ai_gemini.php',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({action:'symptom_check',symptoms,details,age,gender,duration})})
   .then(r=>r.json()).then(d=>{
     hideTyping();
     if(d.success){

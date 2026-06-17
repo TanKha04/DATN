@@ -79,6 +79,18 @@ if ($existing) {
     $ins->execute([$_SESSION['user_id'], $rated_id, $score, $comment]);
 }
 
+// Gửi thông báo cho đối phương
+try {
+    $notifTitle = "Bạn nhận được đánh giá mới!";
+    $notifMsg = $_SESSION['name'] . " đã gửi cho bạn đánh giá " . $score . " sao" . ($comment !== '' ? ' kèm nhận xét: "' . mb_strimwidth(strip_tags($comment), 0, 50, '...') . '"' : '');
+    $notifLink = "profile.php"; // Xem tại hồ sơ cá nhân
+
+    $insertNotifStmt = $pdo->prepare('INSERT INTO notifications (user_id, type, title, message, link, is_read, created_at) VALUES (?, \'rating\', ?, ?, ?, 0, NOW())');
+    $insertNotifStmt->execute([$rated_id, $notifTitle, $notifMsg, $notifLink]);
+} catch (Throwable $e) {
+    error_log('Failed to create notification for rating: ' . $e->getMessage());
+}
+
 // After save, compute new average and count
 $avgStmt = $pdo->prepare('SELECT AVG(rating) AS avg_score, COUNT(*) AS cnt FROM ratings WHERE rated_user_id = ?');
 $avgStmt->execute([$rated_id]);

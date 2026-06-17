@@ -45,3 +45,69 @@ uploads/*
 # File cá nhân/ghi chú
 kha123.txt
 .todo.md
+
+# Báo cáo và ghi chú học thuật (Word, LaTeX, Markdown, v.v.)
+*.docx
+*.doc
+*.tex
+*.pdf
+CHUONG_2.md
+CHUONG_2_WORD.html
+CHUONG_2_WORD.txt
+DANH_GIA_QUY_TRINH_KET_NOI_Y_TE.md
+HUONG_DAN_AI.md
+HUONG_DAN_CHEN_ANH.md
+HUONG_DAN_FIX_NGROK.md
+HUONG_DAN_TEST_POSTMAN.md
+LY_DO_CHON_DE_TAI.md
+QUY_TRINH_KET_NOI_Y_TE.md
+CONG_DUNG_CONG_NGHE.md
+datn.md
+*.svg
+
+# Kịch bản chạy thử (Test & Scratch scripts)
+test_*.php
+scratch_*.php
+scratch_*.html
+ai_chat_simple.php
+fix_var.php
+create_report.py
+create_docx.py
+pinggy_output.txt
+usecase_diagram.html
+assets/css/style.css.backup
+api/ai_symptom_check.php
+api/ai_find_students.php
+facebook_callback.php
+reject_applicant.php
+rate_user.php
+migrate_ai.php
+fix_fullname_php.php
+fix_posts_columns.php
+update_student_ui.php
+create_friendships_table.php
+create_tables.php
+setup_new_columns.php
+debug_students.php
+phpinfo.php
+config_infinityfree.php
+config_switch.php
+*_old.php
+*_backup.php
+admin_new_ui.php
+
+# Academic directories & assets
+Overleaf_Upload/
+Ảnh Giao diện/
+Ảnh Đồ Án/
+ảnh/
+sơ đồ/
+images_doan/
+thesis/
+
+# Scripting and data files
+*.py
+*.ps1
+*.txt
+*.text
+*.sql
