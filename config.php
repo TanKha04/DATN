@@ -5,6 +5,37 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Load .env file if it exists
+if (file_exists(__DIR__ . '/.env')) {
+    $lines = file(__DIR__ . '/.env', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    foreach ($lines as $line) {
+        $line = trim($line);
+        if ($line === '' || strpos($line, '#') === 0) continue;
+        $parts = explode('=', $line, 2);
+        if (count($parts) === 2) {
+            $name = trim($parts[0]);
+            $value = trim($parts[1]);
+            $value = trim($value, '"\'');
+            if (getenv($name) === false) {
+                putenv("$name=$value");
+            }
+            $_ENV[$name] = $value;
+            $_SERVER[$name] = $value;
+        }
+    }
+}
+
+// Define API constants from environment
+if (!defined('GEMINI_API_KEY')) {
+    define('GEMINI_API_KEY', getenv('GEMINI_API_KEY') ?: 'AIzaSyBxF_20QmJsyBRr-65K1wgQ21l6L8tLodA');
+}
+if (!defined('GEMINI_MODEL')) {
+    define('GEMINI_MODEL', getenv('GEMINI_MODEL') ?: 'gemini-flash-latest');
+}
+if (!defined('HUGGINGFACE_API_KEY')) {
+    define('HUGGINGFACE_API_KEY', getenv('HUGGINGFACE_API_KEY') ?: '');
+}
+
 // Detect Docker environment - kiểm tra chính xác hơn
 $isDocker = false;
 
@@ -41,11 +72,19 @@ if ($isDocker) {
 define('APP_NAME', 'Kết nối Y tế');
 define('MAIL_FROM_ADDRESS', 'tramtankhatv@gmail.com');
 define('MAIL_FROM_NAME', 'Kết nối Y tế');
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_ENCRYPTION', 'tls');
-define('SMTP_USERNAME', 'tramtankhatv@gmail.com');
-define('SMTP_PASSWORD', 'bghf tohu ppff vkea');
+if ($isDocker) {
+    define('SMTP_HOST', 'smtp.gmail.com');
+    define('SMTP_PORT', 587);
+    define('SMTP_ENCRYPTION', 'tls');
+    define('SMTP_USERNAME', 'tramtankhatv@gmail.com');
+    define('SMTP_PASSWORD', 'bghf tohu ppff vkea');
+} else {
+    define('SMTP_HOST', 'smtp.gmail.com');
+    define('SMTP_PORT', 587);
+    define('SMTP_ENCRYPTION', 'tls');
+    define('SMTP_USERNAME', 'tramtankhatv@gmail.com');
+    define('SMTP_PASSWORD', 'bghf tohu ppff vkea');
+}
 define('FACEBOOK_APP_ID', getenv('FACEBOOK_APP_ID') ?: '1274834994363695');
 define('FACEBOOK_APP_SECRET', getenv('FACEBOOK_APP_SECRET') ?: 'c8ca96fd22492f2fd6147580f5995568');
 
@@ -201,4 +240,28 @@ function upload_exists(?string $path): bool {
     if (empty($path)) return false;
     if (preg_match('#^https?://#i', $path)) return true;
     return find_upload($path) !== null;
+}
+
+function format_chat_message($msgText) {
+    // 1. Escape HTML safely
+    $escaped = htmlspecialchars($msgText, ENT_QUOTES, 'UTF-8');
+    
+    // 2. Parse Markdown Bold: **text** -> <strong>text</strong>
+    $escaped = preg_replace('/\*\*(.*?)\*\*/', '<strong>$1</strong>', $escaped);
+    
+    // 3. Parse Markdown Links: [Text](URL) -> <a href="URL" ...>Text</a>
+    $escaped = preg_replace_callback('/\[(.*?)\]\((.*?)\)/', function($matches) {
+        $text = $matches[1];
+        $url = $matches[2];
+        
+        $escUrl = htmlspecialchars($url, ENT_QUOTES, 'UTF-8');
+        
+        if (strpos($url, 'assignment_history.php') !== false) {
+            return '<a href="' . $escUrl . '" onclick="if(window.parent && window.parent !== window && typeof window.parent.showSection === \'function\') { window.parent.showSection(\'history\', \'Lịch sử nhận việc\'); return false; } else { window.location.href=\'' . $escUrl . '\'; return false; }" class="chat-message-link">' . $text . '</a>';
+        }
+        
+        return '<a href="' . $escUrl . '" target="_top" class="chat-message-link">' . $text . '</a>';
+    }, $escaped);
+    
+    return nl2br($escaped);
 }

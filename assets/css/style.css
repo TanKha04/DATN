@@ -611,6 +611,45 @@ a:hover { color: var(--brand-primary-light); }
 }
 
 /* ------------------------------------------------------------------
+   Full-width & wide containers - loại bỏ khoảng trắng 2 bên
+   ------------------------------------------------------------------ */
+
+/* Dashboard: full width, không giới hạn width */
+.dashboard-container {
+    width: 100%;
+    max-width: 100%;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+    box-sizing: border-box;
+}
+
+/* Wide container: tối đa 1600px, hợp lý cho mọi trang */
+.container-wide {
+    width: 100%;
+    max-width: 1600px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+    box-sizing: border-box;
+}
+
+/* Override Bootstrap container trên tất cả trang - dùng container-xl trở lên */
+.container {
+    max-width: 1400px !important;
+}
+
+@media (max-width: 1400px) {
+    .dashboard-container { padding-left: 1rem; padding-right: 1rem; }
+    .container-wide { padding-left: 1rem; padding-right: 1rem; }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container { padding-left: 0.75rem; padding-right: 0.75rem; }
+    .container-wide { padding-left: 0.75rem; padding-right: 0.75rem; }
+}
+
+/* ------------------------------------------------------------------
    Dashboard layout shared styles
    ------------------------------------------------------------------ */
 .dashboard-wrapper { margin-top: 2rem; }

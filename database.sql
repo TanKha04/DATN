@@ -22,6 +22,8 @@ USE `dacn1_db`;
 -- =====================================================
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS `ai_messages`;
+DROP TABLE IF EXISTS `ai_conversations`;
 DROP TABLE IF EXISTS `activity_logs`;
 DROP TABLE IF EXISTS `notifications`;
 DROP TABLE IF EXISTS `user_feedback`;
@@ -452,6 +454,35 @@ CREATE TABLE `activity_logs` (
   KEY `idx_activity_logs_action` (`action`),
   KEY `idx_activity_logs_created_at` (`created_at`),
   FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- BẢNG AI_CONVERSATIONS - Lịch sử trò chuyện AI
+-- =====================================================
+CREATE TABLE `ai_conversations` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `user_id` INT(11) NOT NULL,
+  `title` VARCHAR(255) DEFAULT 'Cuộc trò chuyện AI',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_conv_user_id` (`user_id`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- BẢNG AI_MESSAGES - Tin nhắn chat AI
+-- =====================================================
+CREATE TABLE `ai_messages` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `conversation_id` INT(11) NOT NULL,
+  `role` ENUM('user', 'model') NOT NULL,
+  `content` TEXT NOT NULL,
+  `source` VARCHAR(50) DEFAULT 'gemini',
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_ai_msg_conv_id` (`conversation_id`),
+  FOREIGN KEY (`conversation_id`) REFERENCES `ai_conversations` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 

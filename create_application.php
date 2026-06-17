@@ -1,4 +1,9 @@
 <?php
+// Prevent browser caching
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require_once 'config.php';
 require_login();
 
@@ -24,7 +29,7 @@ if ($_SESSION['role'] !== 'student') {
         die('Chỉ sinh viên mới có thể tạo tin ứng tuyển.');
 }
 
- $stmtUser = $pdo->prepare('SELECT id, name, student_id, verified, phone, location, can_post FROM users WHERE id = ?');
+ $stmtUser = $pdo->prepare('SELECT id, name, student_id, verified, phone, location, school, can_post FROM users WHERE id = ?');
 $stmtUser->execute([$_SESSION['user_id']]);
 $currentUser = $stmtUser->fetch();
 if (!$currentUser) {
@@ -338,15 +343,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $studentFullname = trim($_POST['student_fullname'] ?? ($currentUser['name'] ?? ''));
     $studentCode = trim($_POST['student_code'] ?? ($currentUser['student_id'] ?? ''));
     $studentClass = trim($_POST['student_class'] ?? '');
+    $school = trim($_POST['school'] ?? '');
     $suggestedPrice = isset($_POST['suggested_price']) ? (int)preg_replace('/[^0-9]/', '', $_POST['suggested_price']) : 22700;
     $cardImagePath = null;
+    $videoPath = null;
 
-    // Ensure 'suggested_price' column exists (auto-migrate if needed)
+    // Ensure columns exist (auto-migrate if needed)
     try {
         $check = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'suggested_price'");
         $check->execute();
         if ((int)$check->fetchColumn() === 0) {
             $pdo->exec("ALTER TABLE posts ADD COLUMN suggested_price INT NULL AFTER recruiter_fullname");
+        }
+        
+        $checkVideo = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'video_path'");
+        $checkVideo->execute();
+        if ((int)$checkVideo->fetchColumn() === 0) {
+            $pdo->exec("ALTER TABLE posts ADD COLUMN video_path VARCHAR(255) NULL AFTER suggested_price");
         }
     } catch (Exception $e) { /* ignore */ }
 
@@ -358,11 +371,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $content .= "\n\nKỹ năng nổi bật: " . $skills;
         }
 
-        // Handle student card image upload
+        $evidenceImagePath = null;
+
+        // Handle card image upload
         if (!empty($_FILES['card_image']['name'])) {
-            $allowedTypes = ['image/jpeg','image/png','image/jpg','image/webp'];
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
             if ($_FILES['card_image']['error'] !== UPLOAD_ERR_OK) {
-                $error = 'Tải ảnh thất bại. Vui lòng thử lại.';
+                $error = 'Tải ảnh thẻ thất bại. Vui lòng thử lại.';
             } else {
                 $detectedType = null;
                 if (function_exists('mime_content_type')) {
@@ -392,15 +407,108 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Handle evidence image upload
+        if (!empty($_FILES['evidence_image']['name'])) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+            if ($_FILES['evidence_image']['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Tải ảnh minh chứng thất bại. Vui lòng thử lại.';
+            } else {
+                $detectedType = null;
+                if (function_exists('mime_content_type')) {
+                    $detectedType = mime_content_type($_FILES['evidence_image']['tmp_name']);
+                }
+                if (!$detectedType && isset($_FILES['evidence_image']['type'])) {
+                    $detectedType = $_FILES['evidence_image']['type'];
+                }
+                if ($detectedType && !in_array($detectedType, $allowedTypes)) {
+                    $error = 'Ảnh minh chứng chỉ hỗ trợ định dạng JPEG, PNG, WEBP.';
+                } elseif ($_FILES['evidence_image']['size'] > 5 * 1024 * 1024) {
+                    $error = 'Ảnh minh chứng tối đa 5MB.';
+                } else {
+                    $targetDir = __DIR__ . '/uploads/evidence_images';
+                    if (!is_dir($targetDir)) {
+                        mkdir($targetDir, 0777, true);
+                    }
+                    $ext = pathinfo($_FILES['evidence_image']['name'], PATHINFO_EXTENSION);
+                    $filename = 'evidence_' . $_SESSION['user_id'] . '_' . time() . '.' . strtolower($ext ?: 'jpg');
+                    $targetPath = $targetDir . '/' . $filename;
+                    if (move_uploaded_file($_FILES['evidence_image']['tmp_name'], $targetPath)) {
+                        $evidenceImagePath = 'uploads/evidence_images/' . $filename;
+                    } else {
+                        $error = 'Không thể lưu ảnh minh chứng. Vui lòng thử lại.';
+                    }
+                }
+            }
+        }
+
+        // Handle video upload
+        if (!empty($_FILES['health_video']['name']) && !$error) {
+            $allowedVideoTypes = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo'];
+            $uploadError = $_FILES['health_video']['error'];
+            if ($uploadError !== UPLOAD_ERR_OK) {
+                $errorMessages = [
+                    UPLOAD_ERR_INI_SIZE => 'Video vượt quá giới hạn upload_max_filesize trong php.ini.',
+                    UPLOAD_ERR_FORM_SIZE => 'Video vượt quá giới hạn MAX_FILE_SIZE trong form.',
+                    UPLOAD_ERR_PARTIAL => 'Video chỉ được tải lên một phần.',
+                    UPLOAD_ERR_NO_FILE => 'Không có video nào được tải lên.',
+                    UPLOAD_ERR_NO_TMP_DIR => 'Thiếu thư mục tạm.',
+                    UPLOAD_ERR_CANT_WRITE => 'Không thể ghi video vào đĩa.',
+                    UPLOAD_ERR_EXTENSION => 'Một extension PHP đã dừng việc tải lên.',
+                ];
+                $error = $errorMessages[$uploadError] ?? 'Tải video thất bại. Mã lỗi: ' . $uploadError;
+            } else {
+                $detectedType = null;
+                if (function_exists('mime_content_type')) {
+                    $detectedType = mime_content_type($_FILES['health_video']['tmp_name']);
+                }
+                if (!$detectedType && isset($_FILES['health_video']['type'])) {
+                    $detectedType = $_FILES['health_video']['type'];
+                }
+                if ($detectedType && !in_array($detectedType, $allowedVideoTypes)) {
+                    $error = 'Chỉ hỗ trợ video MP4, WebM, MOV, AVI.';
+                } elseif ($_FILES['health_video']['size'] > 50 * 1024 * 1024) {
+                    $error = 'Video tối đa 50MB.';
+                } else {
+                    $targetDir = __DIR__ . '/uploads/health_videos';
+                    if (!is_dir($targetDir)) {
+                        mkdir($targetDir, 0777, true);
+                    }
+                    $ext = pathinfo($_FILES['health_video']['name'], PATHINFO_EXTENSION);
+                    $filename = 'video_' . $_SESSION['user_id'] . '_' . time() . '.' . strtolower($ext ?: 'mp4');
+                    $targetPath = $targetDir . '/' . $filename;
+                    if (move_uploaded_file($_FILES['health_video']['tmp_name'], $targetPath)) {
+                        $videoPath = 'uploads/health_videos/' . $filename;
+                    } else {
+                        $error = 'Không thể lưu video. Vui lòng thử lại.';
+                    }
+                }
+            }
+        }
+
         if (!$error) {
-            $stmt = $pdo->prepare('INSERT INTO posts (user_id,title,content,type,area,category) VALUES (?,?,?,?,?,?)');
+            if (!empty($school)) {
+                try {
+                    $updateSchool = $pdo->prepare('UPDATE users SET school = ? WHERE id = ?');
+                    $updateSchool->execute([$school, $_SESSION['user_id']]);
+                } catch (Throwable $e) {}
+            }
+            $stmt = $pdo->prepare('INSERT INTO posts (user_id, title, content, type, area, category, contact_info, student_fullname, student_code, student_class, suggested_price, card_image, evidence_image, video_path, evidence_description) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
             $stmt->execute([
                 $_SESSION['user_id'],
                 $title,
                 $content,
                 'application',
                 $area,
-                $category
+                $category,
+                $contact,
+                $studentFullname,
+                $studentCode,
+                $studentClass,
+                max(0, $suggestedPrice),
+                $cardImagePath,
+                $evidenceImagePath,
+                $videoPath,
+                'Ảnh thẻ sinh viên hoặc giấy tờ minh chứng'
             ]);
             
             // Nếu đang trong iframe (embed mode), redirect về trang thành công trong iframe
@@ -431,6 +539,9 @@ if ($isEmbed): ?>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <style>
         body { background: #f1f5f9; margin: 0; padding: 0; }
+        /* Loại bỏ khoảng trắng khi embed */
+        .create-app-page { padding: 0 !important; }
+        .create-app-card { max-width: 100% !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
     </style>
 </head>
 <body>
@@ -733,6 +844,139 @@ endif; ?>
     background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
     color: #fff;
 }
+.video-upload-area {
+    border: 2px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 1.25rem;
+    text-align: center;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+.video-upload-area:hover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+}
+.video-upload-area.dragover {
+    border-color: #3b82f6;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+.video-upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+}
+.video-upload-icon {
+    width: 45px;
+    height: 45px;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.2rem;
+    margin: 0 auto 0.75rem;
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
+}
+.video-upload-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #1e3a8a;
+    margin-bottom: 0.35rem;
+}
+.video-upload-text {
+    font-weight: 600;
+    color: #3b82f6;
+    margin-bottom: 0.2rem;
+    font-size: 0.85rem;
+}
+.video-upload-hint {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+.video-benefits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-top: 0.75rem;
+}
+.video-benefit-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.3rem 0.65rem;
+    background: rgba(255,255,255,0.8);
+    border-radius: 15px;
+    font-size: 0.7rem;
+    color: #1e40af;
+    font-weight: 500;
+}
+.video-benefit-tag i {
+    color: #3b82f6;
+}
+.video-preview-container {
+    margin-top: 1rem;
+    display: none;
+}
+.video-preview-container.show {
+    display: block;
+}
+.video-preview {
+    width: 100%;
+    max-height: 300px;
+    border-radius: 16px;
+    background: #000;
+}
+.video-file-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    margin-top: 1rem;
+    border: 1px solid #d1fae5;
+}
+.video-file-icon {
+    width: 50px;
+    height: 50px;
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.3rem;
+}
+.video-file-details {
+    flex: 1;
+}
+.video-file-name {
+    font-weight: 600;
+    color: #1e293b;
+    margin-bottom: 0.25rem;
+    word-break: break-all;
+}
+.video-file-size {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+.btn-remove-video {
+    padding: 0.5rem;
+    background: #fee2e2;
+    border: none;
+    border-radius: 8px;
+    color: #dc2626;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.btn-remove-video:hover {
+    background: #fecaca;
+}
 @media (max-width: 768px) {
     .create-app-header { padding: 1rem; }
     .create-app-body { padding: 1rem; }
@@ -740,6 +984,7 @@ endif; ?>
     .create-app-icon { width: 45px; height: 45px; font-size: 1.3rem; }
     .create-app-header h1 { font-size: 1.1rem; }
     .form-actions { flex-direction: column; }
+    .video-benefits { flex-direction: column; align-items: center; }
 }
 </style>
 
@@ -779,26 +1024,72 @@ endif; ?>
                     </div>
 
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-user"></i> Họ và tên <span class="required">*</span></label>
                                 <input type="text" name="student_fullname" class="form-control" placeholder="Nhập họ tên đầy đủ" required value="<?php echo htmlspecialchars($_POST['student_fullname'] ?? ($currentUser['name'] ?? '')); ?>">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-id-card"></i> Mã số sinh viên <span class="required">*</span></label>
                                 <input type="text" name="student_code" class="form-control" placeholder="Ví dụ: 20DH123" required value="<?php echo htmlspecialchars($_POST['student_code'] ?? ($currentUser['student_id'] ?? '')); ?>">
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-users"></i> Mã lớp <span class="required">*</span></label>
                                 <input type="text" name="student_class" class="form-control" placeholder="Ví dụ: DHY4A" required value="<?php echo htmlspecialchars($_POST['student_class'] ?? ''); ?>">
                             </div>
                         </div>
+                        <div class="col-md-3">
+                            <div class="form-floating-custom">
+                                <label><i class="fas fa-school"></i> Trường đại học <span class="required">*</span></label>
+                                <input type="text" name="school" class="form-control" placeholder="Ví dụ: Đại học Trà Vinh" required value="<?php echo htmlspecialchars($_POST['school'] ?? ($currentUser['school'] ?? '')); ?>">
+                            </div>
+                        </div>
                     </div>
                 </div>
+
+                <style>
+                .vp-suggestion-container {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 0.5rem;
+                    margin-top: 0.5rem;
+                    margin-bottom: 0.6rem;
+                    align-items: center;
+                }
+                .vp-suggestion-chip {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0.35rem 0.75rem;
+                    background: #f0fdf4;
+                    color: #0f766e;
+                    border: 1px dashed #ccfbf1;
+                    border-radius: 20px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    user-select: none;
+                }
+                .vp-suggestion-chip:hover {
+                    background: #ccfbf1;
+                    border-color: #0d9488;
+                    transform: translateY(-1px);
+                }
+                .vp-suggestion-chip.template {
+                    background: #f0f9ff;
+                    color: #0369a1;
+                    border-color: #bae6fd;
+                }
+                .vp-suggestion-chip.template:hover {
+                    background: #e0f2fe;
+                    border-color: #0284c7;
+                }
+                </style>
 
                 <!-- Section: Kinh nghiệm & Kỹ năng -->
                 <div class="form-section">
@@ -810,6 +1101,12 @@ endif; ?>
                     <div class="form-floating-custom">
                         <label><i class="fas fa-file-alt"></i> Giới thiệu / Kinh nghiệm <span class="required">*</span></label>
                         <textarea name="content" class="form-control" placeholder="Tóm tắt kỹ năng, kinh nghiệm thực tập, thời gian có thể hỗ trợ, các chứng chỉ đã có..." required><?php echo htmlspecialchars($_POST['content'] ?? ''); ?></textarea>
+                        <div class="vp-suggestion-container">
+                            <span style="font-size:0.75rem; color:#64748b; font-weight:600; margin-right:0.25rem;">Gợi ý mẫu nhanh:</span>
+                            <span class="vp-suggestion-chip template" onclick="insertTemplate('nursing')"><i class="fas fa-file-prescription"></i> Sinh viên Điều dưỡng</span>
+                            <span class="vp-suggestion-chip template" onclick="insertTemplate('general')"><i class="fas fa-user-md"></i> Sinh viên Đa khoa</span>
+                            <span class="vp-suggestion-chip template" onclick="insertTemplate('other')"><i class="fas fa-hands-helping"></i> Hỗ trợ khác</span>
+                        </div>
                         <div class="form-hint">Mô tả chi tiết giúp bệnh nhân hiểu rõ hơn về năng lực của bạn</div>
                     </div>
 
@@ -818,12 +1115,28 @@ endif; ?>
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-star"></i> Kỹ năng nổi bật</label>
                                 <input type="text" name="skills" class="form-control" placeholder="Ví dụ: Chăm sóc bệnh mãn tính, tiêm truyền, đo huyết áp" value="<?php echo htmlspecialchars($_POST['skills'] ?? ''); ?>">
+                                <div class="vp-suggestion-container">
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Đo huyết áp')">+ Đo huyết áp</span>
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Tiêm truyền')">+ Tiêm truyền</span>
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Chăm sóc vết thương')">+ Chăm sóc vết thương</span>
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Thay băng')">+ Thay băng</span>
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Sơ cứu cơ bản')">+ Sơ cứu</span>
+                                    <span class="vp-suggestion-chip" onclick="appendSkill('Phục hồi chức năng')">+ PHCN</span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-stethoscope"></i> Chuyên ngành mong muốn</label>
                                 <input type="text" name="category" class="form-control" placeholder="Ví dụ: Nội khoa, Nhi, Sản, Ngoại" value="<?php echo htmlspecialchars($_POST['category'] ?? ''); ?>">
+                                <div class="vp-suggestion-container">
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Nội khoa')">+ Nội khoa</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Ngoại khoa')">+ Ngoại khoa</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Nhi khoa')">+ Nhi khoa</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Sản khoa')">+ Sản khoa</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Hồi sức cấp cứu')">+ HSCC</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Y học cổ truyền')">+ YHCT</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -846,7 +1159,8 @@ endif; ?>
                         <div class="col-md-6">
                             <div class="form-floating-custom">
                                 <label><i class="fas fa-map-marker-alt"></i> Khu vực ưu tiên</label>
-                                <input type="text" name="area" class="form-control" placeholder="Ví dụ: Quận 1, TP.HCM" value="<?php echo htmlspecialchars($_POST['area'] ?? ''); ?>">
+                                <input type="text" name="area" class="form-control" placeholder="Ví dụ: Quận 1, TP.HCM hoặc link Google Maps" value="<?php echo htmlspecialchars($_POST['area'] ?? ''); ?>">
+                                <div class="form-hint">Nhập tên khu vực hoặc dán trực tiếp link chia sẻ Google Maps để tạo nút định vị bản đồ.</div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -862,11 +1176,63 @@ endif; ?>
                                 <div class="file-upload-area" id="fileUploadArea">
                                     <input type="file" name="card_image" accept="image/*" id="cardImageInput">
                                     <div class="file-upload-icon"><i class="fas fa-cloud-upload-alt"></i></div>
-                                    <div class="file-upload-text" id="fileUploadText">Kéo thả hoặc nhấn để chọn ảnh</div>
+                                    <div class="file-upload-text" id="fileUploadText">Kéo thả hoặc nhấn để chọn ảnh thẻ</div>
                                     <div class="file-upload-hint">JPG, PNG hoặc WEBP (tối đa 3MB)</div>
                                 </div>
                             </div>
                         </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-custom">
+                                <label><i class="fas fa-file-invoice"></i> Ảnh chứng chỉ / Bằng cấp khác (Tùy chọn)</label>
+                                <div class="file-upload-area" id="evidenceUploadArea">
+                                    <input type="file" name="evidence_image" accept="image/*" id="evidenceImageInput">
+                                    <div class="file-upload-icon"><i class="fas fa-award"></i></div>
+                                    <div class="file-upload-text" id="evidenceUploadText">Kéo thả hoặc nhấn để chọn ảnh chứng chỉ</div>
+                                    <div class="file-upload-hint">JPG, PNG hoặc WEBP (tối đa 5MB)</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section: Video giới thiệu -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <div class="form-section-icon"><i class="fas fa-video"></i></div>
+                        Video giới thiệu bản thân (Tùy chọn)
+                    </div>
+
+                    <div class="video-upload-area" id="videoUploadArea">
+                        <input type="file" name="health_video" accept="video/*" id="healthVideoInput">
+                        <div class="video-upload-icon"><i class="fas fa-film"></i></div>
+                        <div class="video-upload-title">Tải lên video ngắn giới thiệu bản thân</div>
+                        <div class="video-upload-text" id="videoUploadText">Kéo thả hoặc nhấn để chọn video</div>
+                        <div class="video-upload-hint">MP4, WebM, MOV (tối đa 50MB, khuyến nghị dưới 2 phút)</div>
+                        
+                        <div class="video-benefits">
+                            <span class="video-benefit-tag"><i class="fas fa-check-circle"></i> Bệnh nhân tin tưởng hơn</span>
+                            <span class="video-benefit-tag"><i class="fas fa-check-circle"></i> Giới thiệu kỹ năng trực quan</span>
+                            <span class="video-benefit-tag"><i class="fas fa-check-circle"></i> Nổi bật hồ sơ ứng tuyển</span>
+                        </div>
+                    </div>
+
+                    <div class="video-preview-container" id="videoPreviewContainer">
+                        <div class="video-file-info" id="videoFileInfo">
+                            <div class="video-file-icon"><i class="fas fa-play"></i></div>
+                            <div class="video-file-details">
+                                <div class="video-file-name" id="videoFileName"></div>
+                                <div class="video-file-size" id="videoFileSize"></div>
+                            </div>
+                            <button type="button" class="btn-remove-video" id="removeVideoBtn">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <video class="video-preview" id="videoPreview" controls></video>
+                    </div>
+
+                    <div class="form-hint mt-2">
+                        <i class="fas fa-info-circle text-primary"></i> 
+                        Video giới thiệu giúp bệnh nhân cảm thấy an tâm hơn khi lựa chọn bạn chăm sóc sức khỏe cho người thân của họ.
                     </div>
                 </div>
 
@@ -892,19 +1258,58 @@ endif; ?>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const fileInput = document.getElementById('cardImageInput');
-    const uploadArea = document.getElementById('fileUploadArea');
-    const uploadText = document.getElementById('fileUploadText');
+    // Setup for Card Image
+    setupDragDrop('cardImageInput', 'fileUploadArea', 'fileUploadText');
+    // Setup for Evidence Image
+    setupDragDrop('evidenceImageInput', 'evidenceUploadArea', 'evidenceUploadText');
 
-    if (fileInput && uploadArea) {
-        fileInput.addEventListener('change', function() {
+    // Setup for Video
+    const videoInput = document.getElementById('healthVideoInput');
+    const uploadArea = document.getElementById('videoUploadArea');
+    const uploadText = document.getElementById('videoUploadText');
+    const previewContainer = document.getElementById('videoPreviewContainer');
+    const videoPreview = document.getElementById('videoPreview');
+    const videoFileName = document.getElementById('videoFileName');
+    const videoFileSize = document.getElementById('videoFileSize');
+    const removeBtn = document.getElementById('removeVideoBtn');
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function handleVideoSelect(file) {
+        if (file && file.type.startsWith('video/')) {
+            videoFileName.textContent = file.name;
+            videoFileSize.textContent = formatFileSize(file.size);
+            
+            const url = URL.createObjectURL(file);
+            videoPreview.src = url;
+            
+            uploadArea.style.display = 'none';
+            previewContainer.classList.add('show');
+        }
+    }
+
+    function resetVideoUpload() {
+        videoInput.value = '';
+        videoPreview.src = '';
+        uploadArea.style.display = 'block';
+        previewContainer.classList.remove('show');
+    }
+
+    if (videoInput) {
+        videoInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
-                uploadText.textContent = this.files[0].name;
-                uploadArea.style.borderColor = '#10b981';
-                uploadArea.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                handleVideoSelect(this.files[0]);
             }
         });
+    }
 
+    if (uploadArea) {
         uploadArea.addEventListener('dragover', function(e) {
             e.preventDefault();
             this.classList.add('dragover');
@@ -918,14 +1323,105 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             this.classList.remove('dragover');
             if (e.dataTransfer.files.length) {
-                fileInput.files = e.dataTransfer.files;
-                uploadText.textContent = e.dataTransfer.files[0].name;
-                uploadArea.style.borderColor = '#10b981';
-                uploadArea.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                const file = e.dataTransfer.files[0];
+                if (file.type.startsWith('video/')) {
+                    videoInput.files = e.dataTransfer.files;
+                    handleVideoSelect(file);
+                }
             }
         });
     }
+
+    if (removeBtn) {
+        removeBtn.addEventListener('click', resetVideoUpload);
+    }
+
+    function setupDragDrop(inputId, areaId, textId) {
+        const input = document.getElementById(inputId);
+        const area = document.getElementById(areaId);
+        const text = document.getElementById(textId);
+
+        if (input && area) {
+            input.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    text.textContent = this.files[0].name;
+                    area.style.borderColor = '#10b981';
+                    area.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                }
+            });
+
+            area.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.classList.add('dragover');
+            });
+
+            area.addEventListener('dragleave', function() {
+                this.classList.remove('dragover');
+            });
+
+            area.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.classList.remove('dragover');
+                if (e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    text.textContent = e.dataTransfer.files[0].name;
+                    area.style.borderColor = '#10b981';
+                    area.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                }
+            });
+        }
+    }
 });
+
+// ========== SUGGESTION FORM HELPERS ==========
+function insertTemplate(type) {
+    const textarea = document.querySelector('textarea[name="content"]');
+    if (!textarea) return;
+    
+    const templates = {
+        nursing: "Tôi là sinh viên ngành Điều dưỡng. Có kỹ năng thực hành lâm sàng tốt, cẩn thận và chu đáo. Đã từng thực tập tại bệnh viện đa khoa.\n\nKỹ năng chính:\n- Đo dấu hiệu sinh tồn, đo huyết áp\n- Chăm sóc và thay băng vết thương sạch/nhiễm trùng\n- Chăm sóc người cao tuổi, hỗ trợ ăn uống, dùng thuốc đúng giờ.",
+        general: "Tôi là sinh viên ngành Y đa khoa. Có kiến thức chuyên môn cơ bản vững vàng, trung thực và tận tụy. Có kinh nghiệm hỗ trợ bác sĩ trong bệnh viện.\n\nKỹ năng chính:\n- Đo huyết áp, theo dõi đường huyết, dấu hiệu sinh tồn\n- Hướng dẫn bệnh nhân tập vật lý trị liệu cơ bản\n- Hỗ trợ giải thích toa thuốc, tư vấn chế độ dinh dưỡng.",
+        other: "Tôi là sinh viên Y khoa mong muốn hỗ trợ chăm sóc sức khỏe bệnh nhân ngoài giờ học.\n\nKỹ năng chính:\n- Chăm sóc sức khỏe toàn diện tại nhà\n- Hỗ trợ vệ sinh cá nhân, tắm rửa, hỗ trợ đi lại\n- Đưa đón bệnh nhân đi khám bệnh, mua thuốc."
+    };
+    
+    if (textarea.value.trim() && !confirm("Nội dung hiện tại sẽ bị ghi đè bằng mẫu gợi ý. Bạn có muốn tiếp tục không?")) {
+        return;
+    }
+    textarea.value = templates[type] || '';
+    textarea.focus();
+}
+
+function appendSkill(skill) {
+    const input = document.querySelector('input[name="skills"]');
+    if (!input) return;
+    let val = input.value.trim();
+    if (val === '') {
+        input.value = skill;
+    } else {
+        let list = val.split(',').map(s => s.trim()).filter(s => s !== '');
+        if (!list.includes(skill)) {
+            list.push(skill);
+            input.value = list.join(', ');
+        }
+    }
+    input.focus();
+}
+
+function appendCategory(cat) {
+    const input = document.querySelector('input[name="category"]');
+    if (!input) return;
+    let val = input.value.trim();
+    if (val === '') {
+        input.value = cat;
+    } else {
+        let list = val.split(',').map(s => s.trim()).filter(s => s !== '');
+        if (!list.includes(cat)) {
+            list.push(cat);
+            input.value = list.join(', ');
+        }
+    }
+    input.focus();
+}
 </script>
 
 <?php if ($isEmbed): ?>

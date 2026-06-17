@@ -132,6 +132,12 @@ if (!$isEmbed) {
 body { padding-top: 0 !important; }
 .container.py-4, .dashboard-container { padding: 0 !important; margin: 0 !important; max-width: 100% !important; }
 
+<?php if ($isEmbed): ?>
+.edit-profile-page { margin: 0 !important; min-height: auto !important; background: transparent !important; padding: 0 !important; }
+.edit-profile-container { max-width: 100% !important; margin: 0 !important; }
+.edit-profile-card { border-radius: 0 !important; box-shadow: none !important; }
+<?php endif; ?>
+
 .edit-profile-page {
     min-height: 100vh;
     padding: 1rem;
@@ -157,7 +163,7 @@ body { padding-top: 0 !important; }
 }
 
 .edit-profile-header {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     padding: 1.5rem;
     text-align: center;
     position: relative;

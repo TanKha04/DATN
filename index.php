@@ -3,6 +3,24 @@ require_once 'config.php';
 
 $isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
 
+$userFavorites = [];
+if (is_logged_in()) {
+    try {
+        $favStmt = $pdo->prepare('SELECT post_id FROM favorites WHERE user_id = ?');
+        $favStmt->execute([$_SESSION['user_id']]);
+        $userFavorites = $favStmt->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Throwable $e) {}
+}
+
+function format_post_date(string $dateStr): string {
+    $time = strtotime($dateStr);
+    $day = date('d', $time);
+    $monthNum = date('n', $time); // 1 to 12
+    $year = date('Y', $time);
+    $timeStr = date('H:i', $time);
+    return "{$day} T{$monthNum}, {$year} | {$timeStr}";
+}
+
 if (!$isEmbed) {
     require_once 'header.php';
 } else {
@@ -39,7 +57,8 @@ if (!empty($_GET['area'])) {
 $sql = 'SELECT p.*, 
     COALESCE(u.name, u.username, u.full_name) AS author_name, 
     u.verified AS author_verified, 
-    u.last_activity AS author_last_activity 
+    u.last_activity AS author_last_activity,
+    u.avatar AS author_avatar
 FROM posts p 
 JOIN users u ON p.user_id = u.id';
 if ($where) $sql .= ' WHERE ' . implode(' AND ', $where);
@@ -207,42 +226,333 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
 
 /* Posts Grid */
 .posts-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem; }
-.post-card-new { background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; overflow: hidden; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); position: relative; }
-.post-card-new::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, #3b82f6, #1d4ed8); opacity: 0; transition: opacity 0.3s ease; }
-.post-card-new:hover { transform: translateY(-8px); box-shadow: 0 25px 60px rgba(59, 130, 246, 0.15); }
-.post-card-new:hover::before { opacity: 1; }
-.post-card-body { padding: 1.5rem; }
-.post-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 1rem; }
-.post-card-title { font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.post-card-title a { color: inherit; text-decoration: none; transition: color 0.3s ease; }
-.post-card-title a:hover { color: #3b82f6; }
-.post-card-status { padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
-.post-card-status.open { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #047857; }
-.post-card-status.inactive { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #b45309; }
-.post-card-status.closed { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #64748b; }
-.post-card-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; font-size: 0.85rem; color: #64748b; }
-.post-card-meta-item { display: flex; align-items: center; gap: 0.35rem; }
-.post-card-meta-item i { color: #94a3b8; }
-.post-card-meta .verified { color: #10b981; }
-.post-card-meta-item.online-indicator { font-size: 0.8rem; font-weight: 500; padding: 0.2rem 0.6rem; border-radius: 20px; }
-.post-card-meta-item.online-indicator.online { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #059669; }
-.post-card-meta-item.online-indicator.online i { color: #22c55e; font-size: 0.5rem; animation: pulse-dot 2s infinite; }
-.post-card-meta-item.online-indicator.offline { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #dc2626; }
-.post-card-meta-item.online-indicator.offline i { color: #ef4444; font-size: 0.5rem; }
-@keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-.post-card-tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
-.post-card-tag { padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
-.post-card-tag.type-recruitment { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1d4ed8; }
-.post-card-tag.type-application { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #047857; }
-.post-card-tag.area { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
-.post-card-tag.category { background: linear-gradient(135deg, #f3e8ff, #e9d5ff); color: #7c3aed; }
-.post-card-location { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; color: #16a34a; padding: 0.4rem 0.8rem; background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-radius: 8px; width: fit-content; margin-bottom: 0.75rem; }
-.post-card-location i { font-size: 0.9rem; }
-.post-card-content { color: #475569; font-size: 0.95rem; line-height: 1.6; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 1.25rem; }
-.post-card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 1rem; border-top: 1px solid #f1f5f9; }
-.post-card-btn { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.25rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; border-radius: 10px; font-weight: 600; font-size: 0.85rem; text-decoration: none; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(59, 130, 246, 0.25); }
-.post-card-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59, 130, 246, 0.35); color: #fff; }
-.post-card-date { font-size: 0.8rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
+
+.post-card-new {
+    position: relative;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+}
+
+.post-card-new:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: #cbd5e1;
+}
+
+.post-card-top-bar {
+    padding: 0.6rem 1.25rem;
+    font-size: 0.75rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+}
+
+.post-card-top-bar.application {
+    background: linear-gradient(90deg, #dbeafe 0%, #eff6ff 100%);
+    color: #1d4ed8;
+}
+
+.post-card-top-bar.recruitment {
+    background: linear-gradient(90deg, #d1fae5 0%, #e6fdf5 100%);
+    color: #059669;
+}
+
+.post-card-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    flex-grow: 1;
+}
+
+.post-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.post-card-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.post-card-title a {
+    text-decoration: none !important;
+    color: #1e293b;
+    transition: color 0.2s ease;
+}
+
+.post-card-title a:hover {
+    color: #2563eb;
+}
+
+.post-card-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    white-space: nowrap;
+    letter-spacing: 0.025em;
+    border: 1px solid transparent;
+}
+
+.post-card-status.open {
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    background: #e6fdf5;
+}
+.post-card-status.inactive {
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    color: #d97706;
+    background: #fffbeb;
+}
+.post-card-status.closed {
+    border: 1px solid rgba(100, 116, 139, 0.3);
+    color: #64748b;
+    background: #f8fafc;
+}
+.post-card-status.taken {
+    border: 1px solid rgba(37, 99, 235, 0.3);
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.post-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.85rem;
+}
+
+.post-card-tag {
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.post-card-tag.activity.recruitment {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.post-card-tag.activity.application {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.post-card-tag.category {
+    background: #faf5ff;
+    color: #7e22ce;
+}
+
+.post-card-location {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: #f0fdf4;
+    border-radius: 8px;
+    color: #16a34a;
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    width: 100%;
+}
+
+.post-card-user-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    border-radius: 16px;
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.post-card-user-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.post-card-user-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    overflow: hidden;
+}
+
+.post-card-user-name {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.post-card-user-name .verified {
+    color: #3b82f6;
+    font-size: 0.95rem;
+}
+
+.post-card-user-status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.post-card-user-status.online {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.post-card-user-status.online .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.4);
+}
+
+.post-card-user-status.offline {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+.post-card-user-status.offline .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.post-card-desc {
+    color: #475569;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.post-card-skills {
+    font-size: 0.85rem;
+    color: #1e293b;
+    background: #f8fafc;
+    border-left: 3px solid #3b82f6;
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 1rem;
+    border-radius: 0 8px 8px 0;
+}
+
+.post-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    margin-top: auto;
+}
+
+.post-card-footer-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.post-card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.5rem 1rem;
+    background: #2563eb;
+    color: #ffffff !important;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.8rem;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    border: none;
+    box-shadow: 0 2px 4px rgba(37, 99, 235, 0.1);
+    position: relative;
+    z-index: 10;
+}
+
+.post-card-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.15);
+}
+
+.post-card-btn-fav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    color: #64748b;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    z-index: 10;
+}
+
+.post-card-btn-fav:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+    border-color: #cbd5e1;
+}
+
+.post-card-btn-fav.active {
+    color: #ef4444;
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+.post-card-date {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
 
 /* Empty State */
 .posts-empty { text-align: center; padding: 4rem 2rem; background: #fff; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.06); }
@@ -302,32 +612,41 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
         <div class="posts-grid">
             <?php foreach ($posts as $p): ?>
                 <article class="post-card-new">
+                    <div class="post-card-top-bar <?php echo $p['type']; ?>">
+                        <?php if ($p['type'] === 'application'): ?>
+                            <i class="bi bi-mortarboard-fill"></i>
+                            <span>Sinh viên Y khoa ứng tuyển</span>
+                        <?php else: ?>
+                            <i class="bi bi-heart-pulse-fill"></i>
+                            <span>Bệnh nhân cần chăm sóc</span>
+                        <?php endif; ?>
+                    </div>
                     <div class="post-card-body">
                         <!-- Header: Title + Status -->
                         <div class="post-card-header">
                             <h3 class="post-card-title">
-                                <a href="view_post.php?id=<?php echo $p['id']; ?>"><?php echo htmlspecialchars($p['title']); ?></a>
+                                <a href="view_post.php?id=<?php echo $p['id']; ?>" class="stretched-link"><?php echo htmlspecialchars($p['title']); ?></a>
                             </h3>
                             <?php 
                             $status = $p['status'] ?? 'open';
-                            $statusText = ['open' => 'Đang mở', 'inactive' => 'Chưa hoạt động', 'closed' => 'Đã đóng', 'taken' => 'Đã nhận'];
+                            $statusText = ['open' => 'ĐANG MỞ', 'inactive' => 'CHƯA HOẠT ĐỘNG', 'closed' => 'ĐÃ ĐÓNG', 'taken' => 'ĐÃ NHẬN'];
                             ?>
-                            <span class="post-card-status <?php echo $status; ?>"><?php echo $statusText[$status] ?? $status; ?></span>
+                            <span class="post-card-status <?php echo $status; ?>"><?php echo $statusText[$status] ?? mb_strtoupper($status, 'UTF-8'); ?></span>
                         </div>
                         
-                        <!-- Tags: Type + Category -->
+                        <!-- Tags: Activity + Category -->
                         <div class="post-card-tags">
-                            <?php $typeClass = $p['type'] === 'recruitment' ? 'type-recruitment' : 'type-application'; ?>
-                            <span class="post-card-tag <?php echo $typeClass; ?>">
-                                <i class="bi bi-<?php echo $p['type'] === 'recruitment' ? 'briefcase' : 'person-badge'; ?>"></i>
-                                <?php echo $p['type'] === 'recruitment' ? 'Tuyển dụng' : 'Ứng tuyển'; ?>
-                            </span>
+                            <?php if ($p['type'] === 'recruitment'): ?>
+                                <span class="post-card-tag activity recruitment">Hoạt động: Tuyển dụng</span>
+                            <?php else: ?>
+                                <span class="post-card-tag activity application">Hoạt động: Ứng tuyển</span>
+                            <?php endif; ?>
                             <?php if (!empty($p['category'])): ?>
-                                <span class="post-card-tag category"><?php echo htmlspecialchars($p['category']); ?></span>
+                                <span class="post-card-tag category">Lĩnh vực: <?php echo htmlspecialchars($p['category']); ?></span>
                             <?php endif; ?>
                         </div>
                         
-                        <!-- Location (riêng dòng) -->
+                        <!-- Location -->
                         <?php if (!empty($p['area'])): ?>
                         <div class="post-card-location">
                             <i class="bi bi-geo-alt-fill"></i>
@@ -335,33 +654,71 @@ $heroImageSrc = encode_relative_url_path($heroImageRelative);
                         </div>
                         <?php endif; ?>
                         
-                        <!-- Author + Online Status -->
-                        <div class="post-card-meta">
-                            <span class="post-card-meta-item">
-                                <i class="bi bi-person"></i>
-                                <?php echo htmlspecialchars($p['author_name']); ?>
-                                <?php if (!empty($p['author_verified'])): ?>
-                                    <i class="bi bi-patch-check-fill verified" title="Đã xác minh"></i>
-                                <?php endif; ?>
-                            </span>
-                            <span class="post-card-meta-item online-indicator <?php echo is_user_online($p['author_last_activity'] ?? null) ? 'online' : 'offline'; ?>">
-                                <i class="bi bi-circle-fill"></i>
-                                <?php echo is_user_online($p['author_last_activity'] ?? null) ? 'Đang trực tuyến' : 'Ngoại tuyến'; ?>
-                            </span>
+                        <!-- Author User Info Box -->
+                        <div class="post-card-user-box">
+                            <div class="post-card-user-left">
+                                <div class="post-card-user-avatar">
+                                    <?php if (!empty($p['author_avatar']) && upload_exists($p['author_avatar'])): ?>
+                                        <img src="<?php echo htmlspecialchars(public_url_for($p['author_avatar'])); ?>" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                                    <?php else: ?>
+                                        <?php echo strtoupper(substr($p['author_name'], 0, 1)); ?>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="post-card-user-name">
+                                    <?php echo htmlspecialchars($p['author_name']); ?>
+                                    <?php if (!empty($p['author_verified'])): ?>
+                                        <i class="bi bi-patch-check-fill verified" title="Đã xác minh"></i>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            
+                            <?php $isOnline = is_user_online($p['author_last_activity'] ?? null); ?>
+                            <div class="post-card-user-status <?php echo $isOnline ? 'online' : 'offline'; ?>">
+                                <span class="status-dot"></span>
+                                <span><?php echo $isOnline ? 'Đang online' : 'Ngoại tuyến'; ?></span>
+                            </div>
                         </div>
                         
-                        <!-- Description -->
-                        <p class="post-card-content"><?php echo htmlspecialchars(strip_tags($p['content'])); ?></p>
+                        <!-- Description & Skills -->
+                        <?php 
+                        $rawContent = strip_tags($p['content']);
+                        $skillsText = '';
+                        $mainDesc = $rawContent;
+                        if (preg_match('/(Kỹ năng nổi bật|Kỹ năng thực hành|Kỹ năng)[:\-]\s*(.*)$/iu', $rawContent, $matches)) {
+                            $skillsText = trim($matches[2]);
+                            $mainDesc = trim(str_replace($matches[0], '', $rawContent));
+                        }
+                        ?>
+                        <p class="post-card-desc"><?php echo htmlspecialchars($mainDesc); ?></p>
                         
-                        <!-- Footer: Button + Time -->
+                        <?php if (!empty($skillsText)): ?>
+                        <p class="post-card-skills">
+                            <strong>Kỹ năng thực hành:</strong> <?php echo htmlspecialchars($skillsText); ?>
+                        </p>
+                        <?php endif; ?>
+                        
+                        <!-- Footer: Button + Bookmark & Time -->
                         <div class="post-card-footer">
-                            <a href="view_post.php?id=<?php echo $p['id']; ?>" class="post-card-btn">
-                                <i class="bi bi-eye"></i> Xem chi tiết
-                            </a>
-                            <span class="post-card-date">
+                            <div class="post-card-footer-left">
+                                <a href="view_post.php?id=<?php echo $p['id']; ?>" class="post-card-btn">
+                                    <i class="bi bi-eye"></i> Xem chi tiết
+                                </a>
+                                <?php if (is_logged_in()): ?>
+                                    <?php $isFav = in_array($p['id'], $userFavorites); ?>
+                                    <form action="toggle_favorite.php" method="POST" class="d-inline-block bookmark-form" style="position:relative; z-index:10;">
+                                        <input type="hidden" name="post_id" value="<?php echo $p['id']; ?>">
+                                        <input type="hidden" name="redirect" value="index.php#posts">
+                                        <button type="submit" class="post-card-btn-fav <?php echo $isFav ? 'active' : ''; ?>" title="<?php echo $isFav ? 'Bỏ lưu tin' : 'Lưu tin'; ?>">
+                                            <i class="bi bi-bookmark<?php echo $isFav ? '-fill' : ''; ?>"></i>
+                                        </button>
+                                    </form>
+                                <?php endif; ?>
+                            </div>
+                            
+                            <div class="post-card-date">
                                 <i class="bi bi-clock"></i>
-                                <?php echo date('d/m/Y H:i', strtotime($p['created_at'])); ?>
-                            </span>
+                                <span><?php echo format_post_date($p['created_at']); ?></span>
+                            </div>
                         </div>
                     </div>
                 </article>

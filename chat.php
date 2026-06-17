@@ -16,6 +16,18 @@ if ($current_user_id <= 0 || $other_user_id <= 0 || $other_user_id === $current_
     exit;
 }
 
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if (!$isEmbed) {
+    $role = $_SESSION['role'] ?? '';
+    if ($role === 'patient') {
+        header('Location: dashboard_patient.php?chat_user_id=' . $other_user_id);
+        exit;
+    } elseif ($role === 'student') {
+        header('Location: dashboard_student.php?chat_user_id=' . $other_user_id);
+        exit;
+    }
+}
+
 // Check if users are friends
 $areFriends = false;
 $friendshipStatus = null;
@@ -155,7 +167,7 @@ if (!$isEmbed) {
     echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
     echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">';
     echo '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">';
-    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;}</style>';
+    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;} html,body{height:100%!important;} .chat-page, .chat-container{max-width:100%!important;width:100%!important;height:calc(100vh - 2rem)!important;padding:1rem!important;box-sizing:border-box!important;margin:0!important;background:#f1f5f9!important;}</style>';
     echo '</head><body>';
 }
 ?>
@@ -234,10 +246,15 @@ if (!$isEmbed) {
                     </div>
                 </div>
                 <div class="chat-header-actions">
+                    <?php if (($_SESSION['role'] ?? '') === 'patient' && ($other_user['role'] ?? '') === 'student'): ?>
+                        <a href="create_appointment.php?student_id=<?php echo $other_user_id; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="header-action-btn appointment-btn" title="Đặt lịch khám">
+                            <i class="bi bi-calendar-plus-fill"></i>
+                        </a>
+                    <?php endif; ?>
                     <a href="video_call.php?with=<?php echo $other_user_id; ?>" class="header-action-btn video-call-btn" title="Gọi video">
                         <i class="bi bi-camera-video-fill"></i>
                     </a>
-                    <a href="view_profile.php?id=<?php echo $other_user_id; ?>&embed=1" class="header-action-btn" title="Xem hồ sơ">
+                    <a href="view_profile.php?id=<?php echo $other_user_id; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="header-action-btn" title="Xem hồ sơ">
                         <i class="bi bi-person"></i>
                     </a>
                 </div>
@@ -267,7 +284,7 @@ if (!$isEmbed) {
                         <div class="message-wrapper <?php echo $msg['sender_id'] == $current_user_id ? 'sent' : 'received'; ?>">
                             <div class="message-bubble">
                                 <div class="message-content">
-                                    <?php echo nl2br(htmlspecialchars($msg['message'])); ?>
+                                    <?php echo format_chat_message($msg['message']); ?>
                                 </div>
                                 <div class="message-time">
                                     <?php echo date('H:i', strtotime($msg['created_at'])); ?>
@@ -308,7 +325,7 @@ if (!$isEmbed) {
 
 /* Sidebar */
 .chat-sidebar { width: 280px; flex-shrink: 0; display: flex; flex-direction: column; gap: 1rem; }
-.sidebar-header { background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border-radius: 16px; padding: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 700; }
+.sidebar-header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 16px; padding: 1.25rem; color: #fff; display: flex; align-items: center; gap: 0.75rem; font-size: 1.1rem; font-weight: 700; }
 .sidebar-nav { background: #fff; border-radius: 16px; padding: 0.75rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
 .sidebar-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; border-radius: 10px; color: #475569; text-decoration: none; font-weight: 500; transition: all 0.3s; }
 .sidebar-link:hover { background: #f1f5f9; color: #3b82f6; transform: translateX(4px); }
@@ -327,7 +344,7 @@ if (!$isEmbed) {
 .chat-user-info { display: flex; align-items: center; gap: 1rem; }
 .chat-avatar-wrap { position: relative; }
 .chat-avatar, .chat-avatar-placeholder { width: 52px; height: 52px; border-radius: 14px; object-fit: cover; }
-.chat-avatar-placeholder { background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; }
+.chat-avatar-placeholder { background: linear-gradient(135deg, #3b82f6, #1e40af); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; }
 .chat-status-dot { position: absolute; bottom: 0; right: 0; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; }
 .chat-status-dot.online { background: #22c55e; }
 .chat-status-dot.offline { background: #94a3b8; }
@@ -346,6 +363,8 @@ if (!$isEmbed) {
 .header-action-btn:hover { background: #3b82f6; color: #fff; }
 .header-action-btn.video-call-btn { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
 .header-action-btn.video-call-btn:hover { background: linear-gradient(135deg, #059669, #047857); transform: scale(1.05); }
+.header-action-btn.appointment-btn { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #fff; }
+.header-action-btn.appointment-btn:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); transform: scale(1.05); color: #fff; }
 .chat-header-actions { display: flex; gap: 0.5rem; }
 
 /* Messages Area */
@@ -365,6 +384,11 @@ if (!$isEmbed) {
 .message-wrapper.sent .message-bubble { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: #fff; border-radius: 18px 18px 4px 18px; }
 .message-wrapper.received .message-bubble { background: #f1f5f9; color: #1e293b; border-radius: 18px 18px 18px 4px; }
 .message-content { padding: 0.75rem 1rem; line-height: 1.5; word-wrap: break-word; }
+.chat-message-link { text-decoration: underline; font-weight: bold; transition: color 0.2s ease; }
+.message-wrapper.sent .chat-message-link { color: #e0f2fe; }
+.message-wrapper.sent .chat-message-link:hover { color: #fff; }
+.message-wrapper.received .chat-message-link { color: #2563eb; }
+.message-wrapper.received .chat-message-link:hover { color: #1d4ed8; }
 .message-time { padding: 0 1rem 0.5rem; font-size: 0.7rem; opacity: 0.7; display: flex; align-items: center; gap: 0.25rem; }
 .message-wrapper.sent .message-time { justify-content: flex-end; }
 
@@ -378,7 +402,7 @@ if (!$isEmbed) {
 .send-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(59,130,246,0.4); }
 
 /* Responsive */
-@media (max-width: 991px) {
+@media (max-width: 767px) {
     .chat-sidebar { display: none; }
     .chat-container { padding: 0; }
     .chat-main { border-radius: 0; }

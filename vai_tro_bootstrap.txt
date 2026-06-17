@@ -1,0 +1,74 @@
+VAI TRÒ CỦA BOOTSTRAP TRONG DỰ ÁN
+=====================================
+
+Bootstrap là framework CSS được sử dụng để xây dựng giao diện người dùng trong dự án, cung cấp các thành phần có sẵn giúp tạo trang web đẹp mắt và hoạt động tốt trên mọi thiết bị.
+
+HỆ THỐNG GRID VÀ LAYOUT
+
+Bootstrap sử dụng hệ thống lưới 12 cột để sắp xếp các thành phần. Container bao bọc nội dung, row chứa các col để chia bố cục. Ví dụ trong dashboard sinh viên, thông tin cá nhân chiếm 4 cột bên trái, nội dung chính chiếm 8 cột bên phải. Trên điện thoại, các cột tự động xếp chồng lên nhau.
+
+THANH ĐIỀU HƯỚNG
+
+Thanh điều hướng sử dụng class navbar với logo bên trái và menu bên phải. Trên điện thoại, menu thu gọn thành hamburger menu. Class navbar-expand-lg quyết định menu mở rộng từ màn hình large trở lên.
+
+CARDS
+
+Cards là thành phần dùng nhiều nhất, gồm card-header, card-body và card-footer. Mỗi bài đăng tuyển dụng hiển thị trong một card với tiêu đề, mô tả và các nút hành động. Class shadow-sm thêm bóng nhẹ tạo chiều sâu.
+
+BUTTONS
+
+Nút "Đăng tin" dùng btn btn-primary màu xanh dương, "Tìm SV" dùng btn btn-info, "Đánh giá" dùng btn btn-warning, "Hỗ trợ" dùng btn btn-success, nút xóa dùng btn btn-danger. Thêm btn-lg để nút to hơn, btn-sm để nhỏ hơn.
+
+FORMS
+
+Form sử dụng class form-control cho ô nhập liệu, form-label cho nhãn. Class is-invalid hiển thị lỗi màu đỏ, is-valid hiển thị viền xanh khi nhập đúng. Form-group bao bọc mỗi cặp label và input.
+
+CHATBOT WIDGET
+
+Nút mở chat là button tròn với rounded-circle. Card chatbot có header màu xanh với badge "Đang hoạt động", body chứa tin nhắn với avatar phân biệt bot và người dùng, footer có input-group kết hợp ô nhập và nút gửi.
+
+TABLES
+
+Trang admin dùng table với class table-striped tạo màu xen kẽ, table-hover làm hàng sáng khi di chuột. Table-responsive tạo thanh cuộn ngang trên màn hình nhỏ.
+
+MODALS
+
+Modal hiện giữa màn hình với lớp phủ mờ, gồm modal-header có tiêu đề và nút đóng, modal-body chứa nội dung, modal-footer chứa nút hành động. Class fade tạo hiệu ứng mờ dần.
+
+ALERTS VÀ NOTIFICATIONS
+
+Alert alert-success màu xanh lá cho thông báo thành công, alert-danger màu đỏ cho lỗi, alert-warning màu vàng cho cảnh báo, alert-info màu xanh nhạt cho thông tin. Badge đếm số thông báo mới.
+
+LIST GROUP
+
+Danh sách thông báo dùng list-group, mỗi mục là list-group-item. Class list-group-item-primary làm nổi bật thông báo chưa đọc, list-group-item-action cho phép click.
+
+PAGINATION
+
+Thanh phân trang dùng class pagination, mỗi số trang là page-item chứa page-link. Trang hiện tại có class active. Pagination-sm tạo phân trang nhỏ, pagination-lg tạo lớn hơn.
+
+SPACING
+
+Class với tiền tố m cho margin, p cho padding. Ví dụ mt-3 tạo margin-top, mb-4 tạo margin-bottom, px-2 tạo padding trái phải. Số từ 0 đến 5 quyết định độ lớn. Class mx-auto căn giữa phần tử.
+
+TEXT UTILITIES
+
+Text-center căn giữa, text-end căn phải, text-start căn trái. Text-primary tô màu xanh, text-success xanh lá, text-danger đỏ, text-muted xám nhạt. Fw-bold làm đậm, fst-italic làm nghiêng.
+
+DISPLAY UTILITIES
+
+D-none ẩn phần tử, d-block hiển thị dạng block, d-flex tạo flexbox. Kết hợp breakpoint như d-md-none hoặc d-lg-block để hiển thị/ẩn theo kích thước màn hình.
+
+COLORS
+
+Màu xanh dương (primary) cho header và nút chính, xanh lá (success) cho thành công, đỏ (danger) cho lỗi, vàng (warning) cho cảnh báo, xanh nhạt (info) cho thông tin. Class với tiền tố bg tô nền, text tô chữ, border tô viền.
+
+ICONS
+
+Biểu tượng được thêm vào nút và menu bằng Bootstrap Icons hoặc Font Awesome cho các chức năng như đăng tin, tìm kiếm, đánh giá, hỗ trợ, thông báo, tin nhắn và hồ sơ.
+
+KẾT LUẬN
+
+Bootstrap cung cấp đầy đủ thành phần giao diện từ layout cơ bản đến component phức tạp. Việc sử dụng các class có sẵn giúp xây dựng giao diện nhanh, đồng nhất và responsive trên mọi thiết bị.
+
+Phiên bản: Bootstrap 5.3.0

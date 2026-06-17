@@ -7,7 +7,12 @@ if (is_admin_user()) {
     exit;
 }
 if ($_SESSION['role'] !== 'patient') {
-        die('Truy cập bị từ chối.');
+    if ($_SESSION['role'] === 'student') {
+        header('Location: dashboard_student.php');
+    } else {
+        header('Location: index.php');
+    }
+    exit;
 }
 
 $userId = $_SESSION['user_id'];
@@ -21,6 +26,13 @@ function getDisplayName($name) {
     return $name;
 }
 $displayName = getDisplayName($_SESSION['name'] ?? '');
+
+// Lấy thông tin user bao gồm avatar
+$stmtUser = $pdo->prepare('SELECT avatar, name FROM users WHERE id = ?');
+$stmtUser->execute([$userId]);
+$userInfo = $stmtUser->fetch();
+$userAvatar = $userInfo['avatar'] ?? null;
+$userName = $userInfo['name'] ?? $_SESSION['name'];
 
 // check can_post flag to conditionally show create button
 $stmtCan = $pdo->prepare('SELECT can_post FROM users WHERE id = ?');
@@ -168,10 +180,133 @@ $latestPostsCount = count($latestPosts);
 $isEmbed = false;
 
 require_once 'header.php';
+
+// Check for success notifications
+$successMessage = '';
+if (isset($_GET['success'])) {
+    switch ($_GET['success']) {
+        case 'recruitment_created':
+            $successMessage = 'Tin tuyển dụng đã được đăng thành công! Sinh viên sẽ có thể xem và ứng tuyển.';
+            break;
+        case 'post_updated':
+            $successMessage = 'Tin đăng đã được cập nhật thành công!';
+            break;
+        case 'post_deleted':
+            $successMessage = 'Tin đăng đã được xóa thành công!';
+            break;
+    }
+}
 ?>
 </div><!-- Đóng dashboard-container từ header.php -->
 <link rel="stylesheet" href="assets/css/dashboard-sidebar.css?v=<?php echo time(); ?>">
 <style>
+/* ========== SUCCESS NOTIFICATION BANNER ========== */
+.success-notification-banner {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 10px 40px rgba(16, 185, 129, 0.3);
+    animation: successSlideIn 0.5s ease-out;
+    position: relative;
+    overflow: hidden;
+}
+
+.success-notification-banner::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 60%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+    pointer-events: none;
+}
+
+.success-notification-content {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.success-notification-icon {
+    width: 50px;
+    height: 50px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #fff;
+    flex-shrink: 0;
+}
+
+.success-notification-text {
+    flex: 1;
+}
+
+.success-notification-text h4 {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin: 0 0 0.25rem;
+}
+
+.success-notification-text p {
+    color: rgba(255,255,255,0.9);
+    font-size: 0.9rem;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.success-notification-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.success-notification-close:hover {
+    background: rgba(255,255,255,0.3);
+}
+
+@keyframes successSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes successSlideOut {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+}
+
+.success-notification-banner.closing {
+    animation: successSlideOut 0.3s ease-in forwards;
+}
+
 /* Ẩn navbar trên trang dashboard */
 .premium-navbar { display: none !important; }
 body { padding-top: 0 !important; }
@@ -195,9 +330,31 @@ main.dashboard-main > div.dashboard-topbar {
     align-items: center !important;
     justify-content: space-between !important;
 }
+#qrScannerToggleBtn { display: none !important; }
 </style>
 
 <script>
+// Success notification close function
+function closeSuccessNotification() {
+    const notification = document.getElementById('successNotification');
+    if (notification) {
+        notification.classList.add('closing');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }
+}
+
+// Auto-hide success notification after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const notification = document.getElementById('successNotification');
+    if (notification) {
+        setTimeout(() => {
+            closeSuccessNotification();
+        }, 5000);
+    }
+});
+
 // Định nghĩa hàm showSection sớm để onclick hoạt động
 function toggleSidebar() {
     document.querySelector('.dashboard-sidebar').classList.toggle('show');
@@ -294,6 +451,9 @@ function showSection(sectionId, title) {
             else {
                 var iframe = section.querySelector('iframe');
                 if (iframe) {
+                    if (sectionId === 'qr') {
+                        return false;
+                    }
                     var iframeSrc = {
                         'search': 'index.php?type=application&embed=1',
                         'create-post': 'create_recruitment.php?embed=1',
@@ -306,7 +466,8 @@ function showSection(sectionId, title) {
                         'ratings': 'profile.php?embed=1',
                         'stats': 'profile.php?tab=stats&embed=1',
                         'support': 'account_request.php?embed=1',
-                        'settings': 'edit_profile.php?tab=settings&embed=1'
+                        'settings': 'edit_profile.php?tab=settings&embed=1',
+                        'leaderboard': 'leaderboard.php?embed=1'
                     };
                     var currentSrc = iframe.getAttribute('src');
                     if (iframeSrc[sectionId] && (!currentSrc || currentSrc === '')) {
@@ -336,6 +497,18 @@ function showSection(sectionId, title) {
     closeSidebar();
     
     return false;
+}
+
+function openUserProfileInDashboard(profileUrl) {
+    let url = profileUrl;
+    if (url.indexOf('embed=1') === -1) {
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'embed=1';
+    }
+    const iframe = document.getElementById('iframe-view-profile');
+    if (iframe) {
+        iframe.src = url;
+    }
+    showSection('view-profile', 'Xem Hồ sơ');
 }
 
 // Hàm lưu cài đặt
@@ -472,6 +645,23 @@ function confirmDeleteAccount() {
                     <?php endif; ?>
                 </a>
             </div>
+            <!-- Tiện ích -->
+            <div class="sidebar-menu-section">
+                <div class="sidebar-menu-title">Tiện ích</div>
+                <a href="ai_assistant.php" class="sidebar-menu-item" style="background:linear-gradient(135deg,rgba(14,165,233,0.1),rgba(139,92,246,0.1));border:1px solid rgba(14,165,233,0.2);border-radius:10px;margin-bottom:4px;">
+                    <i class="bi bi-stars" style="color:#0ea5e9;"></i>
+                    <span style="background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">Trợ lý AI</span>
+                    <span class="badge" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed);font-size:.6rem;padding:2px 6px;border-radius:10px;color:#fff;">MỚI</span>
+                </a>
+                <a href="#" class="sidebar-menu-item" onclick="showMyQR(); return false;">
+                    <i class="bi bi-qr-code"></i>
+                    <span>Mã QR của tôi</span>
+                </a>
+                <a href="#" class="sidebar-menu-item" onclick="openQRScanner(); return false;">
+                    <i class="bi bi-qr-code-scan"></i>
+                    <span>Quét mã QR</span>
+                </a>
+            </div>
             <!-- Đánh giá -->
             <div class="sidebar-menu-section">
                 <div class="sidebar-menu-title">Thống kê</div>
@@ -488,6 +678,10 @@ function confirmDeleteAccount() {
                     <?php if ($applicationsCount > 0): ?>
                     <span class="badge bg-info"><?php echo $applicationsCount; ?></span>
                     <?php endif; ?>
+                </a>
+                <a href="#" class="sidebar-menu-item" data-section="leaderboard" onclick="return showSection('leaderboard', 'Xếp hạng sinh viên')">
+                    <i class="bi bi-trophy"></i>
+                    <span>Xếp hạng sinh viên</span>
                 </a>
             </div>
             
@@ -535,6 +729,24 @@ function confirmDeleteAccount() {
         
         <!-- Welcome Section - Hiển thị mặc định -->
         <div class="dashboard-welcome-section p-4">
+            <!-- Success Notification -->
+            <?php if ($successMessage): ?>
+            <div class="success-notification-banner" id="successNotification">
+                <div class="success-notification-content">
+                    <div class="success-notification-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="success-notification-text">
+                        <h4>Thành công!</h4>
+                        <p><?php echo htmlspecialchars($successMessage); ?></p>
+                    </div>
+                    <button class="success-notification-close" onclick="closeSuccessNotification()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            <?php endif; ?>
+            
             <div class="welcome-card">
                 <!-- Animated Background Elements -->
                 <div class="welcome-bg-elements">
@@ -548,9 +760,17 @@ function confirmDeleteAccount() {
                 
                 <div class="welcome-content">
                     <div class="welcome-avatar-wrapper">
-                        <div class="welcome-icon-animated">
-                            <span class="wave-emoji">👋</span>
-                        </div>
+                        <!-- User Avatar Section -->
+                        <?php if (!empty($userAvatar) && upload_exists($userAvatar)): ?>
+                            <img src="<?php echo htmlspecialchars(public_url_for($userAvatar)); ?>" alt="Avatar" class="user-avatar-img" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+                            <div class="user-avatar-placeholder" style="display:none;">
+                                <?php echo strtoupper(mb_substr($userName, 0, 1)); ?>
+                            </div>
+                        <?php else: ?>
+                            <div class="user-avatar-placeholder">
+                                <?php echo strtoupper(mb_substr($userName, 0, 1)); ?>
+                            </div>
+                        <?php endif; ?>
                         <div class="avatar-glow"></div>
                     </div>
                     <div class="welcome-text">
@@ -585,9 +805,13 @@ function confirmDeleteAccount() {
                         <span class="btn-icon"><i class="bi bi-bell-fill"></i></span>
                         <span class="btn-text">Thông báo</span>
                     </a>
-                    <a href="#" onclick="showSection('messages', 'Tin Nhắn'); return false;" class="welcome-btn outline">
+                    <a href="#" onclick="showSection('notifications', 'Tin Nhắn'); return false;" class="welcome-btn outline">
                         <span class="btn-icon"><i class="bi bi-chat-dots-fill"></i></span>
                         <span class="btn-text">Tin nhắn</span>
+                    </a>
+                    <a href="#" onclick="openQRScanner(); return false;" class="welcome-btn outline" style="background: rgba(14, 165, 233, 0.25); border: 1px solid rgba(14, 165, 233, 0.5); color: #ffffff;">
+                        <span class="btn-icon"><i class="bi bi-qr-code-scan"></i></span>
+                        <span class="btn-text">Quét QR</span>
                     </a>
                 </div>
                 
@@ -827,8 +1051,8 @@ function confirmDeleteAccount() {
                     <!-- Posts List -->
                     <div class="latest-posts-list" id="latestPostsList">
                         <?php if (empty($latestPosts)): ?>
-                        <div class="empty-posts-state">
-                            <div class="empty-icon">
+                        <div class="empty-posts-state" style="text-align: center; padding: 3rem 2rem; margin: 2rem auto; max-width: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                            <div class="empty-icon" style="margin: 0 auto 1.5rem;">
                                 <i class="bi bi-inbox"></i>
                             </div>
                             <h5>Chưa có tin nào</h5>
@@ -956,6 +1180,11 @@ function confirmDeleteAccount() {
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Section: Xem Hồ sơ Người dùng (QR quét được) -->
+        <div class="dashboard-section" id="section-view-profile" style="display: none;">
+            <iframe id="iframe-view-profile" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
         <!-- Section: Tạo tin tuyển dụng -->
@@ -1403,244 +1632,8 @@ function confirmDeleteAccount() {
         
         <!-- Section: Lịch sử nhận việc -->
         <div class="dashboard-section" id="section-history" style="display: none;">
-            <div class="history-container">
-                <!-- Header -->
-                <div class="history-header">
-                    <div class="header-left">
-                        <div class="header-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            <i class="bi bi-check2-circle"></i>
-                        </div>
-                        <div>
-                            <h4>Lịch sử nhận việc</h4>
-                            <p><?php echo $recentAssignCount; ?> lượt nhận việc trong 30 ngày</p>
-                        </div>
-                    </div>
-                </div>
-
-                <?php if (empty($recentAssignments)): ?>
-                <!-- Empty State -->
-                <div class="history-empty">
-                    <div class="empty-illustration" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
-                        <i class="bi bi-calendar-x" style="color: #10b981;"></i>
-                    </div>
-                    <h5>Chưa có lịch sử nhận việc</h5>
-                    <p>Khi bạn chọn sinh viên nhận việc, lịch sử sẽ được ghi lại tại đây</p>
-                </div>
-                <?php else: ?>
-                <!-- History List -->
-                <div class="history-list">
-                    <?php foreach ($recentAssignments as $index => $assign): ?>
-                    <div class="history-card" style="animation-delay: <?php echo $index * 0.05; ?>s">
-                        <div class="history-card-main">
-                            <div class="history-icon">
-                                <i class="bi bi-person-check-fill"></i>
-                            </div>
-                            <div class="history-info">
-                                <h5 class="history-title"><?php echo htmlspecialchars($assign['title']); ?></h5>
-                                <div class="history-meta">
-                                    <span class="meta-item">
-                                        <i class="bi bi-person"></i>
-                                        <?php echo htmlspecialchars($assign['student_name']); ?>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="bi bi-envelope"></i>
-                                        <?php echo htmlspecialchars($assign['student_email']); ?>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="bi bi-calendar3"></i>
-                                        <?php echo date('d/m/Y H:i', strtotime($assign['assigned_at'])); ?>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="history-card-actions">
-                            <a href="view_post.php?id=<?php echo $assign['post_id']; ?>" class="action-btn btn-view" title="Xem tin">
-                                <i class="bi bi-eye"></i>
-                                <span>Xem tin</span>
-                            </a>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-            </div>
+            <iframe id="iframe-history" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
-        
-        <style>
-        /* History Container */
-        .history-container {
-            padding: 1.5rem;
-        }
-        
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .history-header .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .history-header .header-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-        
-        .history-header h4 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        
-        .history-header p {
-            margin: 0;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        
-        /* Empty State */
-        .history-empty {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 16px;
-            border: 2px dashed #e2e8f0;
-        }
-        
-        .history-empty .empty-illustration {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-        }
-        
-        .history-empty .empty-illustration i {
-            font-size: 3rem;
-        }
-        
-        .history-empty h5 {
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-        
-        .history-empty p {
-            color: #64748b;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        
-        /* History List */
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .history-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-            animation: slideIn 0.4s ease forwards;
-            opacity: 0;
-        }
-        
-        .history-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            border-color: #10b981;
-        }
-        
-        .history-card-main {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .history-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        
-        .history-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .history-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0 0 0.5rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .history-meta {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .history-card-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
-        
-        /* Responsive */
-        @media (max-width: 768px) {
-            .history-card {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .history-card-actions {
-                justify-content: center;
-                margin-top: 0.5rem;
-                padding-top: 1rem;
-                border-top: 1px solid #f1f5f9;
-            }
-            
-            .history-meta {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.25rem;
-            }
-        }
-        </style>
         
         <!-- Section: Danh sách ứng viên -->
         <div class="dashboard-section" id="section-applicants" style="display: none;">
@@ -1707,7 +1700,7 @@ function confirmDeleteAccount() {
                             </div>
                         </div>
                         <div class="applicant-card-actions">
-                            <a href="chat.php?user_id=<?php echo $applicant['student_id']; ?>" class="btn-chat-applicant" title="Nhắn tin">
+                            <a href="#" onclick="openDirectChat(<?php echo (int)$applicant['student_id']; ?>); return false;" class="btn-chat-applicant" title="Nhắn tin">
                                 <i class="bi bi-chat-dots-fill"></i>
                             </a>
                             <a href="view_profile.php?id=<?php echo $applicant['student_id']; ?>" class="btn-view-applicant" title="Xem hồ sơ">
@@ -2398,7 +2391,7 @@ function confirmDeleteAccount() {
                             <button class="friend-tab-btn active" onclick="loadFriendsList('accepted')">
                                 <i class="bi bi-people-fill"></i> Bạn bè
                             </button>
-                            <button class="friend-tab-btn" onclick="loadFriendsList('pending')">
+                            <button class="friend-tab-btn" onclick="showSection('friends', 'Bạn bè'); if(window.frames[0]) window.frames[0].location.href='conversations.php?view=friends&tab=requests&embed=1';">
                                 <i class="bi bi-person-plus"></i> Lời mời
                                 <span class="badge-pending" id="pendingBadge"></span>
                             </button>
@@ -2446,11 +2439,6 @@ function confirmDeleteAccount() {
         <!-- Section: Chat (redirect to messages) -->
         <div class="dashboard-section" id="section-chat" style="display: none;">
             <!-- Sử dụng chung với section-messages -->
-        </div>
-        
-        <!-- Section: Thông báo -->
-        <div class="dashboard-section" id="section-notifications" style="display: none;">
-            <iframe id="iframe-notifications" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
         <!-- Section: Bạn bè - Trang riêng biệt -->
@@ -2641,7 +2629,7 @@ function confirmDeleteAccount() {
                             <a href="view_profile.php?id=<?php echo $rv['user_id'] ?? ''; ?>" class="btn-view-profile">
                                 <i class="bi bi-person"></i> Xem hồ sơ
                             </a>
-                            <a href="chat.php?with=<?php echo $rv['user_id'] ?? ''; ?>" class="btn-send-message">
+                            <a href="#" onclick="openDirectChat(<?php echo (int)($rv['user_id'] ?? 0); ?>); return false;" class="btn-send-message">
                                 <i class="bi bi-chat-dots"></i> Nhắn tin
                             </a>
                         </div>
@@ -3212,6 +3200,11 @@ function confirmDeleteAccount() {
         <!-- Section: Hỗ trợ -->
         <div class="dashboard-section" id="section-support" style="display: none;">
             <iframe id="iframe-support" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+        </div>
+        
+        <!-- Section: Bảng xếp hạng -->
+        <div class="dashboard-section" id="section-leaderboard" style="display: none;">
+            <iframe id="iframe-leaderboard" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
         <!-- Section: Cài đặt tài khoản -->
@@ -3898,7 +3891,7 @@ function confirmDeleteAccount() {
         
         /* Welcome Card Advanced Styles */
         .welcome-card {
-            background: linear-gradient(135deg, #0b3f91 0%, #1e40af 50%, #3b82f6 100%);
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #2563eb 100%);
             background-image: url('ảnh/ảnh nề.jpg');
             background-size: cover;
             background-position: center right;
@@ -3908,7 +3901,7 @@ function confirmDeleteAccount() {
             color: #fff;
             position: relative;
             overflow: hidden;
-            box-shadow: 0 25px 60px rgba(11, 63, 145, 0.35);
+            box-shadow: 0 25px 60px rgba(30, 58, 138, 0.35);
         }
         
         .welcome-card::before {
@@ -3918,7 +3911,7 @@ function confirmDeleteAccount() {
             left: 0;
             right: 0;
             bottom: 0;
-            background: linear-gradient(135deg, rgba(11, 63, 145, 0.85) 0%, rgba(30, 64, 175, 0.7) 50%, rgba(59, 130, 246, 0.55) 100%);
+            background: linear-gradient(135deg, rgba(30, 58, 138, 0.85) 0%, rgba(30, 64, 175, 0.7) 50%, rgba(37, 99, 235, 0.55) 100%);
             z-index: 1;
         }
         
@@ -3981,6 +3974,46 @@ function confirmDeleteAccount() {
         
         .welcome-avatar-wrapper {
             position: relative;
+            width: 90px;
+            height: 90px;
+        }
+        
+        .user-avatar-img {
+            width: 90px;
+            height: 90px;
+            border-radius: 24px;
+            object-fit: cover;
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: icon-bounce 3s infinite ease-in-out;
+            transition: all 0.3s ease;
+        }
+        
+        .user-avatar-img:hover {
+            transform: scale(1.05);
+            border-color: rgba(255,255,255,0.5);
+        }
+        
+        .user-avatar-placeholder {
+            width: 90px;
+            height: 90px;
+            background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+            border-radius: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255,255,255,0.3);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.2);
+            animation: icon-bounce 3s infinite ease-in-out;
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #fff;
+            transition: all 0.3s ease;
+        }
+        
+        .user-avatar-placeholder:hover {
+            transform: scale(1.05);
+            border-color: rgba(255,255,255,0.5);
         }
         
         .welcome-icon-animated {
@@ -6097,6 +6130,29 @@ function confirmDeleteAccount() {
         padding-top: 0.5rem;
         border-top: 1px solid #e2e8f0;
     }
+    
+    .welcome-avatar-wrapper {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .user-avatar-img,
+    .user-avatar-placeholder {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+        font-size: 2rem;
+    }
+    
+    .welcome-content {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .welcome-name {
+        font-size: 2rem;
+    }
 }
 </style>
 
@@ -6787,9 +6843,9 @@ function confirmDeleteAccount() {
         <?php endif; ?>
     </div>
     <?php if (!$posts): ?>
-        <div class="posts-empty">
-            <div class="posts-empty-icon">📝</div>
-            <p>Chưa có tin nào. Hãy đăng tin để tìm sinh viên Y hỗ trợ.</p>
+        <div class="posts-empty" style="text-align: center; padding: 3rem 2rem; margin: 2rem auto; max-width: 500px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #fff; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.1);">
+            <div class="posts-empty-icon" style="font-size: 3rem; margin-bottom: 1.5rem; opacity: 0.7;">📝</div>
+            <p style="margin-bottom: 1.5rem; color: #64748b; font-size: 1.1rem;">Chưa có tin nào. Hãy đăng tin để tìm sinh viên Y hỗ trợ.</p>
             <a class="btn btn-primary" href="create_recruitment.php" style="border-radius: 12px; padding: 0.75rem 1.5rem;">Đăng tin mới</a>
         </div>
     <?php else: ?>
@@ -6966,6 +7022,7 @@ function confirmDeleteAccount() {
 </style>
 
 <?php require_once 'footer.php'; ?>
+
 <script>
 // Filter posts function
 function filterPosts() {
@@ -7184,6 +7241,267 @@ document.addEventListener('DOMContentLoaded', function(){
     </main><!-- /.dashboard-main -->
 </div><!-- /.dashboard-layout -->
 
+<?php include_once 'qr_scanner_widget.php'; ?>
+
+<!-- QR Code Modal -->
+<div id="qrModal" class="qr-modal-overlay" style="display: none;">
+    <div class="qr-modal-card">
+        <div class="qr-modal-header">
+            <h5 class="qr-modal-title"><i class="bi bi-qr-code-scan"></i> Mã QR cá nhân</h5>
+            <button class="qr-modal-close-btn" onclick="closeQRModal()">&times;</button>
+        </div>
+        <div class="qr-modal-body">
+            <div class="qr-code-wrapper">
+                <img id="qrCodeImg" src="" alt="Mã QR" class="qr-code-image">
+                <div class="qr-code-loader">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                </div>
+            </div>
+            <p class="qr-modal-desc">Quét mã QR này để truy cập nhanh vào hồ sơ cá nhân của bạn trên hệ thống.</p>
+            <div class="qr-link-box">
+                <input type="text" id="qrProfileUrl" class="form-control" readonly style="font-size: 0.8rem;">
+                <button class="btn btn-outline-primary btn-copy-link" onclick="copyProfileLink()" title="Sao chép liên kết">
+                    <i class="bi bi-copy"></i>
+                </button>
+            </div>
+        </div>
+        <div class="qr-modal-footer">
+            <button class="btn btn-secondary" onclick="closeQRModal()" style="font-size: 0.9rem; border-radius: 8px; padding: 0.4rem 1rem;">Đóng</button>
+            <a id="downloadQRBtn" href="" download="my_qr_code.png" class="btn btn-primary" onclick="downloadQRCode(event)" style="font-size: 0.9rem; border-radius: 8px; padding: 0.4rem 1rem;"><i class="bi bi-download"></i> Tải ảnh QR</a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* QR Modal Styles */
+.qr-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.qr-modal-overlay.show {
+    opacity: 1;
+}
+
+.qr-modal-card {
+    background: #ffffff;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.qr-modal-overlay.show .qr-modal-card {
+    transform: translateY(0);
+}
+
+.qr-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0D1B36 0%, #1a3a5c 100%);
+    color: #ffffff;
+}
+
+.qr-modal-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qr-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.qr-modal-close-btn:hover {
+    color: #ffffff;
+}
+
+.qr-modal-body {
+    padding: 2rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.qr-code-wrapper {
+    width: 250px;
+    height: 250px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 10px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+.qr-code-image {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    display: none;
+}
+
+.qr-code-loader {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-modal-desc {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.qr-link-box {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.qr-link-box input {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    font-size: 0.85rem;
+    text-overflow: ellipsis;
+}
+
+.btn-copy-link {
+    flex-shrink: 0;
+}
+
+.qr-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+</style>
+
+<script>
+function showMyQR() {
+    const userId = <?php echo json_encode($userId); ?>;
+    const modal = document.getElementById('qrModal');
+    const qrImage = document.getElementById('qrCodeImg');
+    const loader = document.querySelector('.qr-code-loader');
+    const linkInput = document.getElementById('qrProfileUrl');
+
+    // Create profile URL
+    const profileUrl = window.location.origin + window.location.pathname.replace('dashboard_patient.php', '') + 'view_profile.php?id=' + userId;
+    linkInput.value = profileUrl;
+
+    // Set QR code API source
+    const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(profileUrl);
+    
+    // Show modal and loader, hide image initially
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+    
+    qrImage.style.display = 'none';
+    loader.style.display = 'flex';
+    
+    // Load image
+    qrImage.src = qrApiUrl;
+    qrImage.onload = function() {
+        loader.style.display = 'none';
+        qrImage.style.display = 'block';
+    };
+}
+
+function closeQRModal() {
+    const modal = document.getElementById('qrModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+function copyProfileLink() {
+    const linkInput = document.getElementById('qrProfileUrl');
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+        alert('Đã sao chép liên kết hồ sơ cá nhân!');
+    }).catch(err => {
+        console.error('Lỗi khi sao chép link:', err);
+    });
+}
+
+function downloadQRCode(event) {
+    event.preventDefault();
+    const qrImage = document.getElementById('qrCodeImg');
+    if (!qrImage.src) return;
+    
+    fetch(qrImage.src)
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'patient_profile_qr_' + <?php echo json_encode($userId); ?> + '.png';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        })
+        .catch(err => {
+            window.open(qrImage.src, '_blank');
+        });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('qrModal');
+    if (event.target === modal) {
+        closeQRModal();
+    }
+});
+</script>
+
+
 <script>
 function toggleSidebar() {
     document.querySelector('.dashboard-sidebar').classList.toggle('show');
@@ -7231,11 +7549,12 @@ function showSection(sectionId, title) {
                     'messages': 'view_messages.php?embed=1',
                     'notifications': 'view_messages.php?from_admin=1&embed=1',
                     'chat': 'conversations.php?embed=1',
-                    'friends': 'friends.php?embed=1',
+                    'friends': 'conversations.php?view=friends&embed=1',
                     'profile': 'edit_profile.php?embed=1',
                     'ratings': 'profile.php?embed=1',
                     'stats': 'profile.php?tab=stats&embed=1',
-                    'support': 'account_request.php?embed=1'
+                    'support': 'account_request.php?embed=1',
+                    'leaderboard': 'leaderboard.php?embed=1'
                 };
                 // Chỉ load nếu chưa có src hoặc src rỗng
                 var currentSrc = iframe.getAttribute('src');
@@ -7904,6 +8223,14 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+function openDirectChat(userId) {
+    showSection('notifications', 'Tin Nhắn');
+    var iframe = document.getElementById('iframe-notifications');
+    if (iframe) {
+        iframe.src = 'chat.php?user_id=' + userId + '&embed=1';
+    }
+}
+
 // Load conversations when section is shown
 document.addEventListener('DOMContentLoaded', function() {
     const originalShowSection = window.showSection;
@@ -7913,6 +8240,14 @@ document.addEventListener('DOMContentLoaded', function() {
             loadConversations();
         }
     };
+
+    // Auto-open chat or section from query parameters
+    <?php if (isset($_GET['chat_user_id'])): ?>
+        openDirectChat(<?php echo (int)$_GET['chat_user_id']; ?>);
+    <?php endif; ?>
+    <?php if (isset($_GET['section'])): ?>
+        showSection(<?php echo json_encode($_GET['section']); ?>, <?php echo json_encode($_GET['title'] ?? 'Bảng điều khiển'); ?>);
+    <?php endif; ?>
 });
 </script>
 

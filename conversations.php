@@ -4,6 +4,18 @@ require_login();
 
 $current_user_id = $_SESSION['user_id'];
 
+$isEmbed = isset($_GET['embed']) && $_GET['embed'] == '1';
+if (!$isEmbed) {
+    $role = $_SESSION['role'] ?? '';
+    if ($role === 'patient') {
+        header('Location: dashboard_patient.php?section=notifications&title=Tin%20Nhắn');
+        exit;
+    } elseif ($role === 'student') {
+        header('Location: dashboard_student.php?section=chat&title=Tin%20nhắn');
+        exit;
+    }
+}
+
 // Self-migration: Ensure tables and columns exist
 try {
     // Check if conversations table exists
@@ -108,7 +120,7 @@ if (!$isEmbed) {
     echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
     echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">';
     echo '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">';
-    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;}</style>';
+    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;} html,body{height:100%!important;} .conversations-wrapper{max-width:100%!important;width:100%!important;margin:0!important;min-height:calc(100vh - 2rem)!important;height:calc(100vh - 2rem)!important;padding:1rem!important;box-sizing:border-box!important;display:flex;flex-direction:column;} .conversations-wrapper>.row{flex:1;height:100%;} .conversations-sidebar{height:100%;position:static!important;} .conversations-main{height:100%;display:flex;flex-direction:column;} .conversations-body{flex:1;overflow-y:auto;}</style>';
     echo '</head><body>';
 }
 ?>
@@ -286,7 +298,7 @@ if (!$isEmbed) {
     left: 2.5rem;
     right: 2.5rem;
     height: 3px;
-    background: linear-gradient(90deg, #3b82f6, #8b5cf6, #ec4899);
+    background: linear-gradient(90deg, #0b3f91, #1e40af, #3b82f6);
     border-radius: 3px 3px 0 0;
 }
 .conversations-header h3 {
@@ -445,7 +457,7 @@ if (!$isEmbed) {
     top: 0;
     bottom: 0;
     width: 4px;
-    background: linear-gradient(180deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(180deg, #3b82f6, #1e40af);
     opacity: 0;
     transition: opacity 0.3s ease;
 }
@@ -635,7 +647,7 @@ if (!$isEmbed) {
                     <p>Kết nối và trao đổi trực tiếp với người dùng khác</p>
                 </div>
                 <div class="sidebar-nav-premium">
-                    <a href="friends.php" class="sidebar-nav-link">
+                    <a href="friends.php<?php echo $isEmbed ? '?embed=1' : ''; ?>" class="sidebar-nav-link">
                         <i class="bi bi-people-fill"></i> Bạn bè
                         <?php if ($pendingCount > 0): ?>
                             <span class="badge bg-danger ms-auto"><?php echo $pendingCount; ?></span>
@@ -690,7 +702,7 @@ if (!$isEmbed) {
                             <h4>Chưa có cuộc trò chuyện nào</h4>
                             <p>Bạn có thể bắt đầu trò chuyện bằng cách nhấp vào "Liên hệ người đăng" trên các bài đăng hoặc tìm kiếm người dùng khác để nhắn tin.</p>
                             <div class="empty-actions">
-                                <a href="friends.php" class="empty-btn empty-btn-primary">
+                                <a href="friends.php<?php echo $isEmbed ? '?embed=1' : ''; ?>" class="empty-btn empty-btn-primary">
                                     <i class="bi bi-chat-dots-fill"></i> Nhắn tin với bạn bè
                                 </a>
                             </div>

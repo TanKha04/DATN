@@ -1,4 +1,9 @@
 <?php
+// Prevent browser caching
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 require_once 'config.php';
 require_login();
 
@@ -75,10 +80,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = trim($_POST['category'] ?? '');
     $fullname = trim($_POST['fullname'] ?? '');
     $videoPath = null;
+    $evidenceImagePath = null;
+    $prescriptionFilePath = null;
+    $testResultFilePath = null;
 
     if (!$title || !$content || !$contact || !$fullname) {
         $error = 'Vui lòng điền đầy đủ các trường bắt buộc.';
     } else {
+        $suggestedPrice = isset($_POST['suggested_price']) ? (int)preg_replace('/[^0-9]/', '', $_POST['suggested_price']) : 50000;
+        $workTime = trim($_POST['work_time'] ?? '');
+        $jobType = trim($_POST['job_type'] ?? 'part_time');
+        $isUrgent = isset($_POST['is_urgent']) ? 1 : 0;
         // Ensure columns exist (auto-migrate if needed)
         try {
             // Thêm cột type nếu chưa có
@@ -121,6 +133,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $checkVideo->execute();
             if ((int)$checkVideo->fetchColumn() === 0) {
                 $pdo->exec("ALTER TABLE posts ADD COLUMN video_path VARCHAR(255) NULL AFTER recruiter_fullname");
+            }
+            
+            // Thêm các cột mới phục vụ tin tuyển dụng của bệnh nhân nếu chưa có
+            $checkWT = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'work_time'");
+            $checkWT->execute();
+            if ((int)$checkWT->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE posts ADD COLUMN work_time VARCHAR(255) NULL AFTER suggested_price");
+            }
+
+            $checkJT = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'job_type'");
+            $checkJT->execute();
+            if ((int)$checkJT->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE posts ADD COLUMN job_type VARCHAR(50) NULL AFTER work_time");
+            }
+
+            $checkUrgent = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'is_urgent'");
+            $checkUrgent->execute();
+            if ((int)$checkUrgent->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE posts ADD COLUMN is_urgent TINYINT(1) DEFAULT 0 AFTER job_type");
+            }
+
+            // Thêm các cột tài liệu y tế đính kèm của bệnh nhân nếu chưa có
+            $checkPF = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'prescription_file'");
+            $checkPF->execute();
+            if ((int)$checkPF->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE posts ADD COLUMN prescription_file VARCHAR(255) NULL AFTER evidence_image");
+            }
+
+            $checkTRF = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'test_result_file'");
+            $checkTRF->execute();
+            if ((int)$checkTRF->fetchColumn() === 0) {
+                $pdo->exec("ALTER TABLE posts ADD COLUMN test_result_file VARCHAR(255) NULL AFTER prescription_file");
             }
         } catch (Exception $e) { 
             error_log('Auto-migrate posts table failed: ' . $e->getMessage());
@@ -171,9 +215,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
+        // Handle evidence image upload
+        if (!empty($_FILES['evidence_image']['name'])) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+            if ($_FILES['evidence_image']['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Tải ảnh minh chứng thất bại. Vui lòng thử lại.';
+            } else {
+                $detectedType = null;
+                if (function_exists('mime_content_type')) {
+                    $detectedType = mime_content_type($_FILES['evidence_image']['tmp_name']);
+                }
+                if (!$detectedType && isset($_FILES['evidence_image']['type'])) {
+                    $detectedType = $_FILES['evidence_image']['type'];
+                }
+                if ($detectedType && !in_array($detectedType, $allowedTypes)) {
+                    $error = 'Ảnh minh chứng chỉ hỗ trợ định dạng JPEG, PNG, WEBP.';
+                } elseif ($_FILES['evidence_image']['size'] > 5 * 1024 * 1024) {
+                    $error = 'Ảnh minh chứng tối đa 5MB.';
+                } else {
+                    $targetDir = __DIR__ . '/uploads/evidence_images';
+                    if (!is_dir($targetDir)) {
+                        mkdir($targetDir, 0777, true);
+                    }
+                    $ext = pathinfo($_FILES['evidence_image']['name'], PATHINFO_EXTENSION);
+                    $filename = 'evidence_' . $_SESSION['user_id'] . '_' . time() . '.' . strtolower($ext ?: 'jpg');
+                    $targetPath = $targetDir . '/' . $filename;
+                    if (move_uploaded_file($_FILES['evidence_image']['tmp_name'], $targetPath)) {
+                        $evidenceImagePath = 'uploads/evidence_images/' . $filename;
+                    } else {
+                        $error = 'Không thể lưu ảnh minh chứng. Vui lòng thử lại.';
+                    }
+                }
+            }
+        }
+
+        // Handle prescription file upload (Toa thuốc)
+        if (!empty($_FILES['prescription_file']['name']) && !$error) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+            if ($_FILES['prescription_file']['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Tải file toa thuốc thất bại. Vui lòng thử lại.';
+            } else {
+                $detectedType = null;
+                if (function_exists('mime_content_type')) {
+                    $detectedType = mime_content_type($_FILES['prescription_file']['tmp_name']);
+                }
+                if (!$detectedType && isset($_FILES['prescription_file']['type'])) {
+                    $detectedType = $_FILES['prescription_file']['type'];
+                }
+                if ($detectedType && !in_array($detectedType, $allowedTypes)) {
+                    $error = 'File toa thuốc chỉ hỗ trợ định dạng JPEG, PNG, WEBP, hoặc PDF.';
+                } elseif ($_FILES['prescription_file']['size'] > 5 * 1024 * 1024) {
+                    $error = 'File toa thuốc tối đa 5MB.';
+                } else {
+                    $targetDir = __DIR__ . '/uploads/prescriptions';
+                    if (!is_dir($targetDir)) {
+                        mkdir($targetDir, 0777, true);
+                    }
+                    $ext = pathinfo($_FILES['prescription_file']['name'], PATHINFO_EXTENSION);
+                    $filename = 'prescription_' . $_SESSION['user_id'] . '_' . time() . '.' . strtolower($ext ?: 'jpg');
+                    $targetPath = $targetDir . '/' . $filename;
+                    if (move_uploaded_file($_FILES['prescription_file']['tmp_name'], $targetPath)) {
+                        $prescriptionFilePath = 'uploads/prescriptions/' . $filename;
+                    } else {
+                        $error = 'Không thể lưu file toa thuốc. Vui lòng thử lại.';
+                    }
+                }
+            }
+        }
+
+        // Handle test result file upload (Kết quả xét nghiệm)
+        if (!empty($_FILES['test_result_file']['name']) && !$error) {
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp', 'application/pdf'];
+            if ($_FILES['test_result_file']['error'] !== UPLOAD_ERR_OK) {
+                $error = 'Tải file kết quả xét nghiệm thất bại. Vui lòng thử lại.';
+            } else {
+                $detectedType = null;
+                if (function_exists('mime_content_type')) {
+                    $detectedType = mime_content_type($_FILES['test_result_file']['tmp_name']);
+                }
+                if (!$detectedType && isset($_FILES['test_result_file']['type'])) {
+                    $detectedType = $_FILES['test_result_file']['type'];
+                }
+                if ($detectedType && !in_array($detectedType, $allowedTypes)) {
+                    $error = 'File kết quả xét nghiệm chỉ hỗ trợ định dạng JPEG, PNG, WEBP, hoặc PDF.';
+                } elseif ($_FILES['test_result_file']['size'] > 5 * 1024 * 1024) {
+                    $error = 'File kết quả xét nghiệm tối đa 5MB.';
+                } else {
+                    $targetDir = __DIR__ . '/uploads/test_results';
+                    if (!is_dir($targetDir)) {
+                        mkdir($targetDir, 0777, true);
+                    }
+                    $ext = pathinfo($_FILES['test_result_file']['name'], PATHINFO_EXTENSION);
+                    $filename = 'test_result_' . $_SESSION['user_id'] . '_' . time() . '.' . strtolower($ext ?: 'jpg');
+                    $targetPath = $targetDir . '/' . $filename;
+                    if (move_uploaded_file($_FILES['test_result_file']['tmp_name'], $targetPath)) {
+                        $testResultFilePath = 'uploads/test_results/' . $filename;
+                    } else {
+                        $error = 'Không thể lưu file kết quả xét nghiệm. Vui lòng thử lại.';
+                    }
+                }
+            }
+        }
+
         if (!$error) {
-            $stmt = $pdo->prepare('INSERT INTO posts (user_id,title,content,type,area,category,contact_info,recruiter_fullname,video_path) VALUES (?,?,?,?,?,?,?,?,?)');
-            $stmt->execute([$_SESSION['user_id'], $title, $content, 'recruitment', $area, $category, $contact, $fullname, $videoPath]);
+            $stmt = $pdo->prepare('INSERT INTO posts (user_id, title, content, type, area, category, contact_info, recruiter_fullname, video_path, evidence_image, prescription_file, test_result_file, evidence_description, suggested_price, work_time, job_type, is_urgent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$_SESSION['user_id'], $title, $content, 'recruitment', $area, $category, $contact, $fullname, $videoPath, $evidenceImagePath, $prescriptionFilePath, $testResultFilePath, 'Ảnh minh chứng tình trạng sức khỏe cần chăm sóc', $suggestedPrice, $workTime, $jobType, $isUrgent]);
             
             // Nếu đang trong iframe, redirect parent window
             if ($isEmbed) {
@@ -199,6 +345,9 @@ if ($isEmbed): ?>
         body { background: #f1f5f9; margin: 0; padding: 0; }
         /* Ẩn mọi sidebar khi embed */
         .dashboard-sidebar, .sidebar, aside { display: none !important; }
+        /* Loại bỏ khoảng trắng khi embed */
+        .create-recruit-page { padding: 0 !important; }
+        .create-recruit-card { max-width: 100% !important; margin: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
     </style>
 </head>
 <body>
@@ -225,7 +374,7 @@ endif; ?>
     to { opacity: 1; transform: translateY(0); }
 }
 .create-recruit-header {
-    background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     padding: 1.25rem 1.5rem;
     position: relative;
     overflow: hidden;
@@ -297,12 +446,12 @@ endif; ?>
 .form-section-icon {
     width: 32px;
     height: 32px;
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
     border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #059669;
+    color: #1e40af;
     font-size: 0.95rem;
 }
 .form-floating-custom {
@@ -320,9 +469,9 @@ endif; ?>
 }
 .form-floating-custom .form-control:focus,
 .form-floating-custom .form-select:focus {
-    border-color: #10b981;
+    border-color: #3b82f6;
     background: #fff;
-    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
 }
 .form-floating-custom label {
     font-weight: 600;
@@ -347,23 +496,23 @@ endif; ?>
     resize: vertical;
 }
 .video-upload-area {
-    border: 2px dashed #10b981;
+    border: 2px dashed #3b82f6;
     border-radius: 14px;
     padding: 1.25rem;
     text-align: center;
-    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
     transition: all 0.3s ease;
     cursor: pointer;
     position: relative;
 }
 .video-upload-area:hover {
-    border-color: #059669;
-    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+    border-color: #1e40af;
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
     transform: translateY(-1px);
 }
 .video-upload-area.dragover {
-    border-color: #059669;
-    background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
+    border-color: #1e40af;
+    background: linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%);
 }
 .video-upload-area input[type="file"] {
     position: absolute;
@@ -374,7 +523,7 @@ endif; ?>
 .video-upload-icon {
     width: 45px;
     height: 45px;
-    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
     border-radius: 12px;
     display: flex;
     align-items: center;
@@ -382,17 +531,17 @@ endif; ?>
     color: #fff;
     font-size: 1.2rem;
     margin: 0 auto 0.75rem;
-    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.25);
+    box-shadow: 0 6px 18px rgba(59, 130, 246, 0.25);
 }
 .video-upload-title {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #065f46;
+    color: #1e3a8a;
     margin-bottom: 0.35rem;
 }
 .video-upload-text {
     font-weight: 600;
-    color: #047857;
+    color: #1e40af;
     margin-bottom: 0.2rem;
     font-size: 0.85rem;
 }
@@ -415,11 +564,11 @@ endif; ?>
     background: rgba(255,255,255,0.8);
     border-radius: 15px;
     font-size: 0.7rem;
-    color: #047857;
+    color: #1e40af;
     font-weight: 500;
 }
 .video-benefit-tag i {
-    color: #10b981;
+    color: #3b82f6;
 }
 .form-actions {
     display: flex;
@@ -435,18 +584,18 @@ endif; ?>
     justify-content: center;
     gap: 0.5rem;
     padding: 0.8rem 1.5rem;
-    background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+    background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
     color: #fff;
     border: none;
     border-radius: 10px;
     font-size: 0.9rem;
     font-weight: 600;
     transition: all 0.3s ease;
-    box-shadow: 0 5px 18px rgba(16, 185, 129, 0.3);
+    box-shadow: 0 5px 18px rgba(59, 130, 246, 0.3);
 }
 .btn-submit:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
 }
 .btn-cancel {
     display: inline-flex;
@@ -568,6 +717,43 @@ endif; ?>
     .form-actions { flex-direction: column; }
     .video-benefits { flex-direction: column; align-items: center; }
 }
+.vp-suggestion-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    margin-bottom: 0.6rem;
+    align-items: center;
+}
+.vp-suggestion-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.35rem 0.75rem;
+    background: #f0fdf4;
+    color: #0f766e;
+    border: 1px dashed #ccfbf1;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.vp-suggestion-chip:hover {
+    background: #ccfbf1;
+    border-color: #0d9488;
+    transform: translateY(-1px);
+}
+.vp-suggestion-chip.template {
+    background: #eff6ff;
+    color: #1e40af;
+    border-color: #bfdbfe;
+}
+.vp-suggestion-chip.template:hover {
+    background: #dbeafe;
+    border-color: #3b82f6;
+}
 </style>
 
 <div class="create-recruit-page">
@@ -631,6 +817,12 @@ endif; ?>
                     <div class="form-floating-custom">
                         <label>Mô tả chi tiết <span class="required">*</span></label>
                         <textarea name="content" class="form-control" placeholder="Mô tả chi tiết về:&#10;- Tình trạng sức khỏe cần chăm sóc&#10;- Công việc cụ thể cần làm&#10;- Thời gian làm việc mong muốn&#10;- Yêu cầu đặc biệt (nếu có)..." required><?php echo htmlspecialchars($_POST['content'] ?? ''); ?></textarea>
+                        <div class="vp-suggestion-container">
+                            <span style="font-size:0.75rem; color:#64748b; font-weight:600; margin-right:0.25rem;">Gợi ý mẫu nhanh:</span>
+                            <span class="vp-suggestion-chip template" onclick="insertRecruitmentTemplate('elderly')"><i class="bi bi-person-heart"></i> Chăm sóc người cao tuổi</span>
+                            <span class="vp-suggestion-chip template" onclick="insertRecruitmentTemplate('post_op')"><i class="bi bi-heart-pulse-fill"></i> Chăm sóc hậu phẫu</span>
+                            <span class="vp-suggestion-chip template" onclick="insertRecruitmentTemplate('monitoring')"><i class="bi bi-activity"></i> Theo dõi trực đêm</span>
+                        </div>
                         <div class="form-hint">Mô tả càng chi tiết, sinh viên càng hiểu rõ công việc và phù hợp hơn</div>
                     </div>
 
@@ -639,6 +831,12 @@ endif; ?>
                             <div class="form-floating-custom">
                                 <label>Chuyên khoa / Loại chăm sóc</label>
                                 <input type="text" name="category" class="form-control" placeholder="Ví dụ: Chăm sóc người cao tuổi, Hậu phẫu" value="<?php echo htmlspecialchars($_POST['category'] ?? ''); ?>">
+                                <div class="vp-suggestion-container">
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Chăm sóc người cao tuổi')">+ Người cao tuổi</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Phục hồi chức năng')">+ PHCN</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Chăm sóc vết thương')">+ Vết thương</span>
+                                    <span class="vp-suggestion-chip" onclick="appendCategory('Theo dõi sức khỏe')">+ Theo dõi</span>
+                                </div>
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -646,6 +844,44 @@ endif; ?>
                                 <label>Địa chỉ / Khu vực</label>
                                 <input type="text" name="area" class="form-control" placeholder="Địa chỉ cụ thể hoặc link Google Maps" value="<?php echo htmlspecialchars($_POST['area'] ?? ''); ?>">
                                 <div class="form-hint">Dán URL Google Maps để sinh viên dễ tìm đường</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <div class="form-floating-custom">
+                                <label>Mức lương đề xuất (VNĐ/giờ) <span class="required">*</span></label>
+                                <input type="number" min="0" step="1000" name="suggested_price" class="form-control" placeholder="Ví dụ: 60000" required value="<?php echo htmlspecialchars($_POST['suggested_price'] ?? '50000'); ?>">
+                                <div class="form-hint">Mức chi phí chi trả cho mỗi giờ hỗ trợ chăm sóc</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-floating-custom">
+                                <label>Thời gian làm việc cụ thể</label>
+                                <input type="text" name="work_time" class="form-control" placeholder="Ví dụ: Thứ 2 - Thứ 6 (18h-21h) hoặc Linh hoạt" value="<?php echo htmlspecialchars($_POST['work_time'] ?? ''); ?>">
+                                <div class="form-hint">Thông tin lịch biểu làm việc cụ thể để sinh viên sắp xếp</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <div class="form-floating-custom">
+                                <label>Hình thức làm việc</label>
+                                <select name="job_type" class="form-select">
+                                    <option value="part_time" <?php echo (($_POST['job_type'] ?? '') === 'part_time') ? 'selected' : ''; ?>>Bán thời gian (Part-time)</option>
+                                    <option value="full_time" <?php echo (($_POST['job_type'] ?? '') === 'full_time') ? 'selected' : ''; ?>>Toàn thời gian (Full-time)</option>
+                                    <option value="night_shift" <?php echo (($_POST['job_type'] ?? '') === 'night_shift') ? 'selected' : ''; ?>>Trực đêm</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6" style="display: flex; align-items: center; padding-top: 1.8rem;">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" name="is_urgent" id="isUrgentInput" value="1" <?php echo !empty($_POST['is_urgent']) ? 'checked' : ''; ?>>
+                                <label class="form-check-label fw-bold text-danger" for="isUrgentInput">
+                                    🔥 Cần tuyển gấp (Hiển thị nhãn Cần gấp trên bài đăng)
+                                </label>
                             </div>
                         </div>
                     </div>
@@ -689,6 +925,54 @@ endif; ?>
                     <div class="form-hint mt-2">
                         <i class="bi bi-info-circle text-primary"></i> 
                         Video giúp sinh viên Y đánh giá chính xác tình trạng và chuẩn bị tốt hơn cho công việc chăm sóc.
+                    </div>
+                </div>
+
+                <!-- Section: Toa thuốc -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <div class="form-section-icon" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);"><i class="bi bi-file-earmark-text-fill"></i></div>
+                        Toa thuốc (Tùy chọn)
+                    </div>
+
+                    <div class="video-upload-area" id="prescriptionUploadArea" style="border: 2px dashed #0d9488; background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); transition: all 0.3s ease;">
+                        <input type="file" name="prescription_file" accept="image/*,application/pdf" id="prescriptionFileInput">
+                        <div class="video-upload-icon" style="background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);"><i class="bi bi-file-earmark-text"></i></div>
+                        <div class="video-upload-title" style="color: #115e59;">Tải lên ảnh hoặc file PDF toa thuốc</div>
+                        <div class="video-upload-text" id="prescriptionUploadText" style="color: #0d9488;">Kéo thả hoặc nhấn để chọn tài liệu</div>
+                        <div class="video-upload-hint">JPG, PNG, WEBP hoặc PDF (tối đa 5MB)</div>
+                    </div>
+                </div>
+
+                <!-- Section: Hồ sơ bệnh án -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <div class="form-section-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"><i class="bi bi-file-earmark-medical-fill"></i></div>
+                        Hồ sơ bệnh án (Tùy chọn)
+                    </div>
+
+                    <div class="video-upload-area" id="evidenceUploadArea" style="border: 2px dashed #10b981; background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); transition: all 0.3s ease;">
+                        <input type="file" name="evidence_image" accept="image/*" id="evidenceImageInput">
+                        <div class="video-upload-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);"><i class="bi bi-file-earmark-medical"></i></div>
+                        <div class="video-upload-title" style="color: #065f46;">Tải lên ảnh minh chứng hoặc hồ sơ bệnh án</div>
+                        <div class="video-upload-text" id="evidenceUploadText" style="color: #059669;">Kéo thả hoặc nhấn để chọn ảnh</div>
+                        <div class="video-upload-hint">JPG, PNG hoặc WEBP (tối đa 5MB)</div>
+                    </div>
+                </div>
+
+                <!-- Section: Kết quả xét nghiệm -->
+                <div class="form-section">
+                    <div class="form-section-title">
+                        <div class="form-section-icon" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);"><i class="bi bi-file-earmark-ruled-fill"></i></div>
+                        Kết quả xét nghiệm (Tùy chọn)
+                    </div>
+
+                    <div class="video-upload-area" id="testResultUploadArea" style="border: 2px dashed #0284c7; background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); transition: all 0.3s ease;">
+                        <input type="file" name="test_result_file" accept="image/*,application/pdf" id="testResultFileInput">
+                        <div class="video-upload-icon" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);"><i class="bi bi-file-earmark-ruled"></i></div>
+                        <div class="video-upload-title" style="color: #075985;">Tải lên ảnh hoặc file PDF kết quả xét nghiệm</div>
+                        <div class="video-upload-text" id="testResultUploadText" style="color: #0284c7;">Kéo thả hoặc nhấn để chọn tài liệu</div>
+                        <div class="video-upload-hint">JPG, PNG, WEBP hoặc PDF (tối đa 5MB)</div>
                     </div>
                 </div>
 
@@ -779,7 +1063,153 @@ document.addEventListener('DOMContentLoaded', function() {
     if (removeBtn) {
         removeBtn.addEventListener('click', resetVideoUpload);
     }
+
+    // Setup for Evidence Image
+    const imageInput = document.getElementById('evidenceImageInput');
+    const imageArea = document.getElementById('evidenceUploadArea');
+    const imageText = document.getElementById('evidenceUploadText');
+
+    if (imageInput && imageArea) {
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                imageText.textContent = this.files[0].name;
+                imageArea.style.borderColor = '#10b981';
+                imageArea.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+            }
+        });
+
+        imageArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        imageArea.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        imageArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                const file = e.dataTransfer.files[0];
+                if (file.type.startsWith('image/')) {
+                    imageInput.files = e.dataTransfer.files;
+                    imageText.textContent = file.name;
+                    imageArea.style.borderColor = '#10b981';
+                    imageArea.style.background = 'linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%)';
+                }
+            }
+        });
+    }
+    // Setup for Prescription File
+    const prescriptionInput = document.getElementById('prescriptionFileInput');
+    const prescriptionArea = document.getElementById('prescriptionUploadArea');
+    const prescriptionText = document.getElementById('prescriptionUploadText');
+
+    if (prescriptionInput && prescriptionArea) {
+        prescriptionInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                prescriptionText.textContent = this.files[0].name;
+                prescriptionArea.style.borderColor = '#0d9488';
+                prescriptionArea.style.background = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
+            }
+        });
+
+        prescriptionArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        prescriptionArea.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        prescriptionArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                const file = e.dataTransfer.files[0];
+                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+                    prescriptionInput.files = e.dataTransfer.files;
+                    prescriptionText.textContent = file.name;
+                    prescriptionArea.style.borderColor = '#0d9488';
+                    prescriptionArea.style.background = 'linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%)';
+                }
+            }
+        });
+    }
+
+    // Setup for Test Result File
+    const testResultInput = document.getElementById('testResultFileInput');
+    const testResultArea = document.getElementById('testResultUploadArea');
+    const testResultText = document.getElementById('testResultUploadText');
+
+    if (testResultInput && testResultArea) {
+        testResultInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                testResultText.textContent = this.files[0].name;
+                testResultArea.style.borderColor = '#0284c7';
+                testResultArea.style.background = 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)';
+            }
+        });
+
+        testResultArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('dragover');
+        });
+
+        testResultArea.addEventListener('dragleave', function() {
+            this.classList.remove('dragover');
+        });
+
+        testResultArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('dragover');
+            if (e.dataTransfer.files.length) {
+                const file = e.dataTransfer.files[0];
+                if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+                    testResultInput.files = e.dataTransfer.files;
+                    testResultText.textContent = file.name;
+                    testResultArea.style.borderColor = '#0284c7';
+                    testResultArea.style.background = 'linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%)';
+                }
+            }
+        });
+    }
 });
+
+function insertRecruitmentTemplate(type) {
+    const textarea = document.querySelector('textarea[name="content"]');
+    if (!textarea) return;
+    
+    const templates = {
+        elderly: "Cần tìm sinh viên Y khoa hỗ trợ chăm sóc người cao tuổi tại nhà.\n\n- Tình trạng sức khỏe: Cụ ông 78 tuổi, đi lại hơi yếu, tỉnh táo nhưng cần người theo dõi huyết áp và hỗ trợ sinh hoạt hàng ngày.\n- Công việc chính: Đo huyết áp, theo dõi dùng thuốc theo toa bác sĩ kê, hỗ trợ dìu đi lại nhẹ nhàng và chuẩn bị bữa ăn nhẹ.\n- Yêu cầu mong muốn: Sinh viên Y/Điều dưỡng cẩn thận, lễ phép, có thái độ ân cần chu đáo.",
+        post_op: "Cần tìm sinh viên Y/Điều dưỡng hỗ trợ chăm sóc sau phẫu thuật tại nhà.\n\n- Tình trạng sức khỏe: Bệnh nhân nam 45 tuổi mới phẫu thuật chấn thương chỉnh hình khớp gối, đang tập phục hồi chức năng cơ bản tại nhà.\n- Công việc chính: Hỗ trợ thay băng rửa vết thương sạch hàng ngày, hướng dẫn và giúp bệnh nhân thực hiện các bài tập vật lý trị liệu cơ bản theo đúng chỉ định của bác sĩ điều trị.\n- Yêu cầu mong muốn: Sinh viên có kỹ năng thay băng tốt, nắm vững lý thuyết và thực hành PHCN cơ bản.",
+        monitoring: "Cần tìm sinh viên Y trực đêm theo dõi sức khỏe cho bệnh nhân.\n\n- Tình trạng sức khỏe: Bệnh nhân suy tim độ 2, hay mất ngủ về đêm, cần người có chuyên môn y tế ở cạnh đề phòng tình huống khẩn cấp hoặc diễn biến xấu đột ngột.\n- Công việc chính: Theo dõi các dấu hiệu sinh tồn cơ bản (nhịp tim, huyết áp, thở) định kỳ theo giờ đêm, hỗ trợ cho uống thuốc tối và xử trí ban đầu, gọi cấp cứu nếu có biến cố.\n- Yêu cầu mong muốn: Ưu tiên sinh viên Y hệ bác sĩ đa khoa từ năm 3 trở lên, bình tĩnh và xử lý tình huống khẩn cấp tốt."
+    };
+    
+    if (textarea.value.trim() && !confirm("Nội dung hiện tại sẽ bị ghi đè bằng mẫu gợi ý. Bạn có muốn tiếp tục không?")) {
+        return;
+    }
+    textarea.value = templates[type] || '';
+    textarea.focus();
+}
+
+function appendCategory(cat) {
+    const input = document.querySelector('input[name="category"]');
+    if (!input) return;
+    let val = input.value.trim();
+    if (val === '') {
+        input.value = cat;
+    } else {
+        let list = val.split(',').map(s => s.trim()).filter(s => s !== '');
+        if (!list.includes(cat)) {
+            list.push(cat);
+            input.value = list.join(', ');
+        }
+    }
+    input.focus();
+}
 </script>
 
 <?php if ($isEmbed): ?>

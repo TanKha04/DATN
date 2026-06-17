@@ -37,20 +37,16 @@ if (!$rated_id || $score < 1 || $score > 5) {
 // Optional title from modal
 $title = trim($_POST['title'] ?? '');
 
-// Permission: only allow rating the owner if the current user was assigned to one of their posts
-// Ensure assigned_to column exists before querying
+// Permission: only allow rating if they have a completed appointment together
 $allowed = false;
 try {
-    $colChk = $pdo->prepare("SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'posts' AND COLUMN_NAME = 'assigned_to'");
-    $colChk->execute();
-    $hasAssigned = (int)$colChk->fetchColumn() > 0;
-    if ($hasAssigned) {
-        $perm = $pdo->prepare('SELECT id FROM posts WHERE user_id = ? AND assigned_to = ? AND status = ? LIMIT 1');
-        $perm->execute([$rated_id, $_SESSION['user_id'], 'taken']);
-        $allowed = (bool)$perm->fetchColumn();
-    } else {
-        $allowed = false;
-    }
+    $checkAppt = $pdo->prepare('
+        SELECT COUNT(*) FROM appointments 
+        WHERE status = "completed" 
+          AND ((patient_id = ? AND student_id = ?) OR (patient_id = ? AND student_id = ?))
+    ');
+    $checkAppt->execute([$_SESSION['user_id'], $rated_id, $rated_id, $_SESSION['user_id']]);
+    $allowed = (int)$checkAppt->fetchColumn() > 0;
 } catch (Throwable $e) {
     error_log('rate permission check failed: ' . $e->getMessage());
     $allowed = false;

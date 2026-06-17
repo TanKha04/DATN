@@ -606,9 +606,15 @@ function get_role_label($role, $is_admin = false) {
 
 <div class="profile-premium-page">
     <div class="profile-premium-container">
-        <a href="javascript:history.back()" class="profile-back-btn">
-            <i class="bi bi-arrow-left"></i> Quay lại
-        </a>
+        <?php if ($isEmbed): ?>
+            <a href="#" onclick="if(window.parent && typeof window.parent.showSection === 'function') { window.parent.showSection('welcome', 'Bảng điều khiển'); } else { history.back(); } return false;" class="profile-back-btn">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        <?php else: ?>
+            <a href="javascript:history.back()" class="profile-back-btn">
+                <i class="bi bi-arrow-left"></i> Quay lại
+            </a>
+        <?php endif; ?>
 
         <div class="profile-premium-card">
             <!-- Header with Avatar -->

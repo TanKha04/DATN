@@ -81,11 +81,20 @@ if (!isset($isEmbed)) {
         }
     </style>
     <?php endif; ?>
+    <script>
+        if (window.self !== window.top) {
+            document.write('<style>' +
+                '.premium-navbar, nav.navbar, .navbar, footer, .footer, .bg-light.text-muted { display: none !important; } ' +
+                'body { padding-top: 0 !important; margin: 0 !important; background: #f1f5f9 !important; } ' +
+                '.friends-page, .chat-page, .chat-container, .conversations-wrapper, .messages-page-wrapper { max-width: 100% !important; width: 100% !important; margin: 0 !important; padding: 1rem !important; height: calc(100vh - 2rem) !important; box-sizing: border-box !important; }' +
+                '</style>');
+        }
+    </script>
 </head>
 <body>
 <?php if (!$isEmbed): ?>
 <nav class="navbar navbar-expand-lg navbar-dark premium-navbar">
-  <div class="container">
+  <div class="container-fluid px-3 px-lg-4">
     <a class="navbar-brand d-flex align-items-center gap-2" href="index.php">
       <span class="brand-icon">
         <img src="ảnh/logo web.jpg" alt="Logo Kết nối Y tế" class="navbar-logo-img">
@@ -140,6 +149,12 @@ if (!isset($isEmbed)) {
             <a class="nav-link nav-link-premium" href="index.php#posts">
               <i class="bi bi-search"></i>
               <span>Tìm kiếm</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link nav-link-premium" href="leaderboard.php">
+              <i class="bi bi-trophy-fill"></i>
+              <span>Xếp hạng sinh viên</span>
             </a>
           </li>
         <?php endif; ?>
@@ -227,9 +242,32 @@ if (!isset($isEmbed)) {
 <?php endif; // end !$isEmbed navbar ?>
 <?php 
 $currentPage = $_SERVER['PHP_SELF'];
-$isDashboard = strpos($currentPage, 'dashboard_') !== false;
-$isFullWidth = $isDashboard || strpos($currentPage, 'view_messages') !== false;
-$containerClass = $isFullWidth ? 'dashboard-container' : 'container py-4';
+$isDashboard = strpos($currentPage, 'dashboard_') !== false
+    || strpos($currentPage, 'admin_dashboard') !== false
+    || basename($currentPage) === 'admin.php'
+    || strpos($currentPage, 'admin_posts') !== false
+    || strpos($currentPage, 'admin_users') !== false
+    || strpos($currentPage, 'admin_reports') !== false
+    || strpos($currentPage, 'admin_verifications') !== false
+    || strpos($currentPage, 'admin_favorites') !== false
+    || strpos($currentPage, 'admin_send') !== false;
+$isFullWidth = $isDashboard
+    || strpos($currentPage, 'view_messages') !== false
+    || strpos($currentPage, 'view_post') !== false
+    || strpos($currentPage, 'index') !== false
+    || strpos($currentPage, 'view_profile') !== false
+    || strpos($currentPage, 'leaderboard') !== false
+    || strpos($currentPage, 'create_') !== false
+    || strpos($currentPage, 'edit_') !== false
+    || strpos($currentPage, 'profile') !== false
+    || strpos($currentPage, 'favorites') !== false
+    || strpos($currentPage, 'assignment') !== false
+    || strpos($currentPage, 'notifications') !== false
+    || strpos($currentPage, 'chat') !== false
+    || strpos($currentPage, 'conversations') !== false
+    || strpos($currentPage, 'friends') !== false
+    || strpos($currentPage, 'appointment') !== false;
+$containerClass = $isDashboard ? 'dashboard-container' : ($isFullWidth ? 'container-wide py-3' : 'container-wide py-3');
 ?>
 <div class="<?php echo $containerClass; ?>">
 

@@ -68,7 +68,7 @@ HTML;
 }
 
 function send_html_email(string $toEmail, string $toName, string $subject, string $body): bool {
-    $fromFormatted = sprintf('%s <%s>', MAIL_FROM_NAME, MAIL_FROM_ADDRESS);
+    $fromFormatted = sprintf('%s <%s>', encode_header(MAIL_FROM_NAME), MAIL_FROM_ADDRESS);
     $headers = [
         'From: ' . $fromFormatted,
         'Reply-To: ' . $fromFormatted,
@@ -102,13 +102,9 @@ function smtp_send_mail(string $toEmail, string $toName, string $subject, string
         return false;
     }
     $port = SMTP_PORT ?: 587;
-    $encryption = strtolower(SMTP_ENCRYPTION ?: 'tls');
+    $encryption = strtolower(defined('SMTP_ENCRYPTION') ? SMTP_ENCRYPTION : 'tls');
     $username = SMTP_USERNAME;
     $password = SMTP_PASSWORD;
-    if (!$username || !$password) {
-        error_log('SMTP credentials missing');
-        return false;
-    }
 
     $remote = ($encryption === 'ssl' ? 'ssl://' : '') . $host . ':' . $port;
     $contextOptions = [];
@@ -159,16 +155,18 @@ function smtp_send_mail(string $toEmail, string $toName, string $subject, string
             $sendCommand('EHLO ' . $localhost, [250]);
         }
 
-        $sendCommand('AUTH LOGIN', [334]);
-        $sendCommand(base64_encode($username), [334]);
-        $sendCommand(base64_encode($password), [235]);
+        if (!empty($username) && !empty($password)) {
+            $sendCommand('AUTH LOGIN', [334]);
+            $sendCommand(base64_encode($username), [334]);
+            $sendCommand(base64_encode($password), [235]);
+        }
 
         $sendCommand('MAIL FROM: <' . $username . '>', [250]);
         $sendCommand('RCPT TO: <' . $toEmail . '>', [250, 251]);
         $sendCommand('DATA', [354]);
 
         $encodedSubject = encode_header($subject);
-        $toHeader = $toName ? sprintf('%s <%s>', $toName, $toEmail) : $toEmail;
+        $toHeader = $toName ? sprintf('%s <%s>', encode_header($toName), $toEmail) : $toEmail;
         $messageHeaders = array_merge([
             'To: ' . $toHeader,
             'Subject: ' . $encodedSubject

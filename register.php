@@ -253,8 +253,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         transform: translateY(-2px);
     }
     .register-card .btn-student {
-        background: #10b981;
-        border: 2px solid #10b981;
+        background: #3b82f6;
+        border: 2px solid #3b82f6;
         color: #fff;
         padding: 12px 40px;
         font-weight: 600;
@@ -263,8 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         transition: all 0.3s ease;
     }
     .register-card .btn-student:hover {
-        background: #059669;
-        border-color: #059669;
+        background: #2563eb;
+        border-color: #2563eb;
         transform: translateY(-2px);
     }
     .register-welcome {
@@ -387,7 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: 15px; border: none;">
-            <div class="modal-header" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border-radius: 15px 15px 0 0;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); color: white; border-radius: 15px 15px 0 0;">
                 <h5 class="modal-title" id="studentModalLabel"><i class="fas fa-user-graduate me-2"></i>Đăng Ký Sinh Viên Y Khoa</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -429,7 +429,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
                     </div>
                     <div class="d-grid">
-                        <button class="btn btn-lg" style="background: #10b981; color: white; border-radius: 10px; font-weight: 600;" type="submit">Đăng Ký</button>
+                        <button class="btn btn-lg" style="background: #3b82f6; color: white; border-radius: 10px; font-weight: 600;" type="submit">Đăng Ký</button>
                     </div>
                 </form>
             </div>

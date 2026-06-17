@@ -49,7 +49,7 @@ if (!$isEmbed) {
     echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
     echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">';
     echo '<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">';
-    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;}html,body{overflow-x:hidden;}</style>';
+    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}.premium-navbar,.navbar,.site-header{display:none!important;}html,body{overflow-x:hidden;} html,body{height:100%!important;} .messages-page-wrapper{max-width:100%!important;width:100%!important;margin:0!important;min-height:calc(100vh - 2rem)!important;height:calc(100vh - 2rem)!important;padding:1rem!important;box-sizing:border-box!important;display:flex;flex-direction:column;} .messages-page-wrapper>.row{flex:1;height:100%;} .messages-sidebar{height:100%;position:static!important;} .messages-main{height:100%;display:flex;flex-direction:column;} .messages-body{flex:1;overflow-y:auto;}</style>';
     echo '</head><body>';
 }
 ?>
@@ -324,6 +324,15 @@ if (window.self !== window.top) {
     line-height: 1.6;
     font-size: 0.95rem;
 }
+.chat-message-link {
+    color: #2563eb;
+    text-decoration: underline;
+    font-weight: bold;
+    transition: color 0.2s ease;
+}
+.chat-message-link:hover {
+    color: #1d4ed8;
+}
 
 /* Empty State */
 .messages-empty {
@@ -448,7 +457,7 @@ if (window.self !== window.top) {
                                         </div>
                                     </div>
                                     <div class="message-content">
-                                        <?php echo nl2br(htmlspecialchars($m['message'])); ?>
+                                        <?php echo format_chat_message($m['message']); ?>
                                     </div>
                                 </div>
                             <?php endforeach; ?>

@@ -77,96 +77,169 @@ require_once 'header.php';
             </div>
         <?php endif; ?>
 
-        <!-- Main Form Card -->
-        <div class="notification-form-card">
-            <form method="post" class="notification-form">
-                <!-- Recipient Section -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon"><i class="bi bi-people-fill"></i></div>
-                        <div class="section-title">Người nhận</div>
-                    </div>
-                    
-                    <div class="recipient-options">
-                        <label class="recipient-option">
-                            <input type="checkbox" name="to_all" id="to_all" class="recipient-checkbox">
-                            <div class="option-card">
-                                <div class="option-icon all-users">
-                                    <i class="bi bi-globe"></i>
-                                </div>
-                                <div class="option-info">
-                                    <span class="option-title">Tất cả người dùng</span>
-                                    <span class="option-desc">Gửi thông báo đến toàn bộ hệ thống</span>
-                                </div>
-                                <div class="option-check">
-                                    <i class="bi bi-check-lg"></i>
+        <!-- Main layout: 2 columns on large screens -->
+        <div class="notification-content-grid">
+            <div class="notification-left-col">
+                <!-- Main Form Card -->
+                <div class="notification-form-card">
+                    <form method="post" class="notification-form">
+                        <!-- Recipient Section -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <div class="section-icon"><i class="bi bi-people-fill"></i></div>
+                                <div class="section-title">Người nhận</div>
+                            </div>
+                            
+                            <div class="recipient-options">
+                                <label class="recipient-option">
+                                    <input type="checkbox" name="to_all" id="to_all" class="recipient-checkbox">
+                                    <div class="option-card">
+                                        <div class="option-icon all-users">
+                                            <i class="bi bi-globe"></i>
+                                        </div>
+                                        <div class="option-info">
+                                            <span class="option-title">Tất cả người dùng</span>
+                                            <span class="option-desc">Gửi thông báo đến toàn bộ hệ thống</span>
+                                        </div>
+                                        <div class="option-check">
+                                            <i class="bi bi-check-lg"></i>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+
+                            <div class="divider-text"><span>hoặc chọn người dùng cụ thể</span></div>
+
+                            <div class="select-wrapper">
+                                <i class="bi bi-person-fill select-icon"></i>
+                                <select name="to_user" class="form-select-custom" id="user_select">
+                                    <option value="0">-- Chọn người dùng --</option>
+                                    <?php foreach ($users as $u): ?>
+                                        <option value="<?php echo (int)$u['id']; ?>" <?php echo $targetUserId === (int)$u['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($u['name'] . ' (' . $u['email'] . ')'); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <i class="bi bi-chevron-down select-arrow"></i>
+                            </div>
+                        </div>
+
+                        <!-- Message Section -->
+                        <div class="form-section">
+                            <div class="section-header">
+                                <div class="section-icon"><i class="bi bi-chat-text-fill"></i></div>
+                                <div class="section-title">Nội dung thông báo</div>
+                            </div>
+                            
+                            <div class="textarea-wrapper">
+                                <textarea name="message" class="form-textarea-custom" rows="8" placeholder="Nhập nội dung thông báo của bạn..."><?php echo htmlspecialchars($_POST['message'] ?? ''); ?></textarea>
+                                <div class="textarea-footer">
+                                    <span class="char-count"><span id="charCount">0</span> ký tự</span>
                                 </div>
                             </div>
-                        </label>
-                    </div>
-
-                    <div class="divider-text"><span>hoặc chọn người dùng cụ thể</span></div>
-
-                    <div class="select-wrapper">
-                        <i class="bi bi-person-fill select-icon"></i>
-                        <select name="to_user" class="form-select-custom" id="user_select">
-                            <option value="0">-- Chọn người dùng --</option>
-                            <?php foreach ($users as $u): ?>
-                                <option value="<?php echo (int)$u['id']; ?>" <?php echo $targetUserId === (int)$u['id'] ? 'selected' : ''; ?>><?php echo htmlspecialchars($u['name'] . ' (' . $u['email'] . ')'); ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <i class="bi bi-chevron-down select-arrow"></i>
-                    </div>
-                </div>
-
-                <!-- Message Section -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <div class="section-icon"><i class="bi bi-chat-text-fill"></i></div>
-                        <div class="section-title">Nội dung thông báo</div>
-                    </div>
-                    
-                    <div class="textarea-wrapper">
-                        <textarea name="message" class="form-textarea-custom" rows="6" placeholder="Nhập nội dung thông báo của bạn..."><?php echo htmlspecialchars($_POST['message'] ?? ''); ?></textarea>
-                        <div class="textarea-footer">
-                            <span class="char-count"><span id="charCount">0</span> ký tự</span>
                         </div>
+
+                        <!-- Action Buttons -->
+                        <div class="form-actions">
+                            <a href="admin.php" class="btn-cancel">
+                                <i class="bi bi-x-lg"></i>
+                                <span>Hủy bỏ</span>
+                            </a>
+                            <button type="submit" class="btn-send">
+                                <i class="bi bi-send-fill"></i>
+                                <span>Gửi thông báo</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="notification-right-col">
+                <!-- Quick Tips -->
+                <div class="tips-card">
+                    <div class="tips-header">
+                        <i class="bi bi-lightbulb-fill"></i>
+                        <span>Mẹo hữu ích</span>
+                    </div>
+                    <ul class="tips-list">
+                        <li><i class="bi bi-check2"></i> Thông báo sẽ xuất hiện trong mục Tin nhắn của người dùng</li>
+                        <li><i class="bi bi-check2"></i> Chọn "Tất cả người dùng" để gửi thông báo hàng loạt</li>
+                        <li><i class="bi bi-check2"></i> Nội dung nên ngắn gọn, rõ ràng và dễ hiểu</li>
+                    </ul>
+                </div>
+
+                <!-- Stats Card -->
+                <div class="stats-info-card">
+                    <div class="tips-header">
+                        <i class="bi bi-people-fill" style="color:#3b82f6;"></i>
+                        <span style="color:#1e293b;">Thống kê người dùng</span>
+                    </div>
+                    <div class="stats-row">
+                        <span class="stats-label">Tổng người dùng</span>
+                        <span class="stats-value"><?php echo count($users); ?></span>
                     </div>
                 </div>
-
-                <!-- Action Buttons -->
-                <div class="form-actions">
-                    <a href="admin.php" class="btn-cancel">
-                        <i class="bi bi-x-lg"></i>
-                        <span>Hủy bỏ</span>
-                    </a>
-                    <button type="submit" class="btn-send">
-                        <i class="bi bi-send-fill"></i>
-                        <span>Gửi thông báo</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Quick Tips -->
-        <div class="tips-card">
-            <div class="tips-header">
-                <i class="bi bi-lightbulb-fill"></i>
-                <span>Mẹo hữu ích</span>
             </div>
-            <ul class="tips-list">
-                <li><i class="bi bi-check2"></i> Thông báo sẽ xuất hiện trong mục Tin nhắn của người dùng</li>
-                <li><i class="bi bi-check2"></i> Chọn "Tất cả người dùng" để gửi thông báo hàng loạt</li>
-                <li><i class="bi bi-check2"></i> Nội dung nên ngắn gọn, rõ ràng và dễ hiểu</li>
-            </ul>
         </div>
     </div>
 
 <style>
 /* Notification Page Inline Styles for Better Specificity */
 .notification-page-wrapper {
-    max-width: 800px;
-    margin: 0 auto;
+    max-width: 100%;
+    width: 100%;
+    padding: 1.5rem;
+    box-sizing: border-box;
+}
+
+/* 2-column grid layout */
+.notification-content-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.notification-left-col { min-width: 0; }
+.notification-right-col { display: flex; flex-direction: column; gap: 1.5rem; }
+
+/* Stats info card */
+.stats-info-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 20px;
+    padding: 1.5rem;
+    border: 1px solid #bfdbfe;
+}
+
+.stats-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(59,130,246,0.15);
+}
+
+.stats-row:last-child { border-bottom: none; }
+
+.stats-label {
+    font-size: 0.9rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.stats-value {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+@media (max-width: 1024px) {
+    .notification-content-grid {
+        grid-template-columns: 1fr;
+    }
+    .notification-right-col {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .notification-right-col > * { flex: 1; min-width: 240px; }
 }
 
 .notification-header {

@@ -23,8 +23,15 @@ COPY . /var/www/html/
 RUN chown -R www-data:www-data /var/www/html
 RUN chmod -R 755 /var/www/html
 
-# Tạo thư mục uploads và set quyền
+# Tạo thư mục uploads và các thư mục con, sau đó set quyền sở hữu và quyền ghi
 RUN mkdir -p /var/www/html/uploads/health_videos \
+             /var/www/html/uploads/prescriptions \
+             /var/www/html/uploads/test_results \
+             /var/www/html/uploads/evidence_images \
+             /var/www/html/uploads/student_cards \
+             /var/www/html/uploads/avatars \
+             /var/www/html/uploads/attendance \
+             /var/www/html/uploads/verification_docs \
     && chown -R www-data:www-data /var/www/html/uploads \
     && chmod -R 777 /var/www/html/uploads
 

@@ -7,7 +7,12 @@ if (is_admin_user()) {
     exit;
 }
 if ($_SESSION['role'] !== 'student') {
-        die('Truy cập bị từ chối.'); 
+    if ($_SESSION['role'] === 'patient') {
+        header('Location: dashboard_patient.php');
+    } else {
+        header('Location: index.php');
+    }
+    exit;
 }
 
 $userId = $_SESSION['user_id'];
@@ -117,7 +122,7 @@ $myApplications = [];
 $myApplicationsCount = 0;
 try {
     $appSql = "SELECT DISTINCT m.created_at AS applied_at, p.id AS post_id, p.title, p.status, p.area, 
-               u.name AS employer_name, u.avatar AS employer_avatar, u.email AS employer_email
+               u.id AS employer_id, u.name AS employer_name, u.avatar AS employer_avatar, u.email AS employer_email
         FROM messages m 
         JOIN posts p ON p.id = m.post_id 
         JOIN users u ON u.id = p.user_id
@@ -208,7 +213,7 @@ main.dashboard-main > div.dashboard-topbar {
 .hero-gradient-orb.orb-1 {
     width: 300px;
     height: 300px;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    background: linear-gradient(135deg, #3b82f6, #1e40af);
     top: -100px;
     right: -50px;
     animation: float-orb 8s ease-in-out infinite;
@@ -635,7 +640,7 @@ main.dashboard-main > div.dashboard-topbar {
 
 .quick-stat-card.stat-posts::before { background: linear-gradient(180deg, #10b981, #059669); }
 .quick-stat-card.stat-contacts::before { background: linear-gradient(180deg, #3b82f6, #2563eb); }
-.quick-stat-card.stat-messages::before { background: linear-gradient(180deg, #8b5cf6, #7c3aed); }
+.quick-stat-card.stat-messages::before { background: linear-gradient(180deg, #2563eb, #1e40af); }
 .quick-stat-card.stat-favorites::before { background: linear-gradient(180deg, #ec4899, #db2777); }
 .quick-stat-card.stat-history::before { background: linear-gradient(180deg, #06b6d4, #0891b2); }
 .quick-stat-card.stat-rating::before { background: linear-gradient(180deg, #f59e0b, #d97706); }
@@ -790,6 +795,7 @@ main.dashboard-main > div.dashboard-topbar {
         font-size: 0.75rem;
     }
 }
+#qrScannerToggleBtn { display: none !important; }
 </style>
 
 <script>
@@ -825,6 +831,14 @@ function filterFavorites() {
     var countEl = document.querySelector('.search-count');
     if (countEl) {
         countEl.textContent = visibleCount + ' tin';
+    }
+}
+
+function openDirectChat(userId) {
+    showSection('chat', 'Tin nhắn');
+    var iframe = document.getElementById('iframe-chat');
+    if (iframe) {
+        iframe.src = 'chat.php?user_id=' + userId + '&embed=1';
     }
 }
 
@@ -874,7 +888,8 @@ function showSection(sectionId, title) {
                     'stats': 'profile.php?tab=stats&embed=1',
                     'support': 'account_request.php?embed=1',
                     'settings': 'edit_profile.php?tab=settings&embed=1',
-                    'contacts': 'profile.php?tab=contacts&embed=1'
+                    'contacts': 'profile.php?tab=contacts&embed=1',
+                    'leaderboard': 'leaderboard.php?embed=1'
                 };
                 // Luôn load src nếu có trong mapping
                 if (iframeSrc[sectionId]) {
@@ -906,6 +921,18 @@ function showSection(sectionId, title) {
     closeSidebar();
     
     return false;
+}
+
+function openUserProfileInDashboard(profileUrl) {
+    let url = profileUrl;
+    if (url.indexOf('embed=1') === -1) {
+        url += (url.indexOf('?') === -1 ? '?' : '&') + 'embed=1';
+    }
+    const iframe = document.getElementById('iframe-view-profile');
+    if (iframe) {
+        iframe.src = url;
+    }
+    showSection('view-profile', 'Xem Hồ sơ');
 }
 
 // Hàm xóa bài đăng
@@ -949,7 +976,7 @@ function showApplicants(postId, postTitle) {
     
     var modalHTML = '<div id="dynamicApplicantsModal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.6);z-index:999999;display:flex;align-items:center;justify-content:center;padding:20px;">' +
         '<div style="background:#fff;border-radius:16px;width:100%;max-width:550px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,0.3);">' +
-            '<div style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);padding:1rem 1.5rem;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;">' +
+            '<div style="background:linear-gradient(135deg,#1e40af,#3b82f6);padding:1rem 1.5rem;border-radius:16px 16px 0 0;display:flex;justify-content:space-between;align-items:center;">' +
                 '<h5 style="margin:0;color:#fff;font-size:1rem;font-weight:600;"><i class="bi bi-people-fill"></i> Chọn người nhận việc</h5>' +
                 '<button onclick="closeDynamicModal()" style="background:rgba(255,255,255,0.2);border:none;width:32px;height:32px;border-radius:50%;color:#fff;cursor:pointer;font-size:1.2rem;">&times;</button>' +
             '</div>' +
@@ -999,13 +1026,13 @@ function renderApplicants(data, postId, container) {
             var user = data.applicants[i];
             var safeName = (user.name || 'Người dùng').replace(/'/g, "\\'");
             html += '<div style="display:flex;align-items:center;gap:1rem;padding:1rem;background:#f8fafc;border-radius:12px;margin-bottom:0.75rem;">' +
-                '<div style="width:45px;height:45px;background:linear-gradient(135deg,#8b5cf6,#7c3aed);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;"><i class="bi bi-person-fill"></i></div>' +
+                '<div style="width:45px;height:45px;background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1.2rem;"><i class="bi bi-person-fill"></i></div>' +
                 '<div style="flex:1;">' +
                     '<div style="font-weight:600;color:#1e293b;">' + (user.name || 'Người dùng') + '</div>' +
                     '<div style="font-size:0.85rem;color:#64748b;"><i class="bi bi-clock"></i> ' + (user.contact_time || 'Đã liên hệ') + '</div>' +
                 '</div>' +
                 '<div style="display:flex;gap:0.5rem;">' +
-                    '<a href="chat.php?user=' + user.id + '" style="padding:0.4rem 0.75rem;background:#eff6ff;color:#3b82f6;border-radius:6px;text-decoration:none;font-size:0.85rem;"><i class="bi bi-chat-fill"></i></a>' +
+                    '<a href="#" onclick="openDirectChat(' + user.id + '); return false;" style="padding:0.4rem 0.75rem;background:#eff6ff;color:#3b82f6;border-radius:6px;text-decoration:none;font-size:0.85rem;"><i class="bi bi-chat-fill"></i></a>' +
                     '<button onclick="acceptApplicant(' + postId + ',' + user.id + ',\'' + safeName + '\')" style="padding:0.4rem 0.75rem;background:linear-gradient(135deg,#10b981,#059669);color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.85rem;font-weight:600;"><i class="bi bi-check-lg"></i> Chọn</button>' +
                 '</div>' +
             '</div>';
@@ -1184,6 +1211,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     });
+
+    // Auto-open chat or section from query parameters
+    <?php if (isset($_GET['chat_user_id'])): ?>
+        openDirectChat(<?php echo (int)$_GET['chat_user_id']; ?>);
+    <?php endif; ?>
+    <?php if (isset($_GET['section'])): ?>
+        showSection(<?php echo json_encode($_GET['section']); ?>, <?php echo json_encode($_GET['title'] ?? 'Bảng điều khiển'); ?>);
+    <?php endif; ?>
 });
 </script>
 
@@ -1264,6 +1299,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 </a>
             </div>
             
+            <!-- Tiện ích -->
+            <div class="sidebar-menu-section">
+                <div class="sidebar-menu-title">Tiện ích</div>
+                <a href="ai_assistant.php" class="sidebar-menu-item" style="background:linear-gradient(135deg,rgba(14,165,233,0.1),rgba(139,92,246,0.1));border:1px solid rgba(14,165,233,0.2);border-radius:10px;margin-bottom:4px;">
+                    <i class="bi bi-stars" style="color:#0ea5e9;"></i>
+                    <span style="background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">Trợ lý AI</span>
+                    <span class="badge" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed);font-size:.6rem;padding:2px 6px;border-radius:10px;color:#fff;">MỚI</span>
+                </a>
+                <a href="#" class="sidebar-menu-item" onclick="showMyQR(); return false;">
+                    <i class="bi bi-qr-code"></i>
+                    <span>Mã QR của tôi</span>
+                </a>
+                <a href="#" class="sidebar-menu-item" onclick="openQRScanner(); return false;">
+                    <i class="bi bi-qr-code-scan"></i>
+                    <span>Quét mã QR</span>
+                </a>
+            </div>
+            
             <!-- Thống kê -->
             <div class="sidebar-menu-section">
                 <div class="sidebar-menu-title">Thống kê</div>
@@ -1280,6 +1333,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <?php if ($ratingTotal > 0): ?>
                     <span class="badge bg-warning text-dark"><?php echo $ratingTotal; ?></span>
                     <?php endif; ?>
+                </a>
+                <a href="#" class="sidebar-menu-item" data-section="leaderboard" onclick="return showSection('leaderboard', 'Bảng xếp hạng')">
+                    <i class="bi bi-trophy"></i>
+                    <span>Bảng xếp hạng</span>
                 </a>
             </div>
             
@@ -1373,6 +1430,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <?php if ($messageCount > 0): ?>
                                 <span class="hero-btn-badge"><?php echo $messageCount; ?></span>
                                 <?php endif; ?>
+                            </a>
+                            <a href="#" onclick="showMyQR(); return false;" class="hero-btn hero-btn-outline" style="background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.4);">
+                                <i class="bi bi-qr-code" style="color: #6366f1;"></i> Mã QR của tôi
+                            </a>
+                            <a href="#" onclick="openQRScanner(); return false;" class="hero-btn hero-btn-outline" style="background: rgba(14, 165, 233, 0.15); border-color: rgba(14, 165, 233, 0.4);">
+                                <i class="bi bi-qr-code-scan" style="color: #0ea5e9;"></i> Quét mã QR
                             </a>
                         </div>
                     </div>
@@ -1663,12 +1726,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         </div>
                         <div class="post-card-actions">
-                            <?php if ($post['status'] === 'open'): ?>
-                            <button type="button" class="action-btn btn-applicants" title="Chọn người nhận việc" onclick="showApplicants(<?php echo $post['id']; ?>, '<?php echo htmlspecialchars(addslashes($post['title'])); ?>')">
-                                <i class="bi bi-check-circle-fill"></i>
-                                <span>Nhận</span>
-                            </button>
-                            <?php endif; ?>
                             <a href="view_post.php?id=<?php echo $post['id']; ?>" class="action-btn btn-view" title="Xem chi tiết">
                                 <i class="bi bi-eye"></i>
                                 <span>Xem</span>
@@ -2130,16 +2187,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         .action-btn.btn-applicants {
-            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
             color: white;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);
             border: none;
             cursor: pointer;
         }
         
         .action-btn.btn-applicants:hover {
             transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
+            box-shadow: 0 6px 20px rgba(30, 64, 175, 0.4);
         }
         
         /* Status badges */
@@ -2968,244 +3025,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <!-- Section: Lịch sử nhận việc -->
         <div class="dashboard-section" id="section-history" style="display: none;">
-            <div class="history-container">
-                <!-- Header -->
-                <div class="history-header">
-                    <div class="header-left">
-                        <div class="header-icon" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            <i class="bi bi-check2-circle"></i>
-                        </div>
-                        <div>
-                            <h4>Lịch sử nhận việc</h4>
-                            <p><?php echo count($recentAcceptances); ?> lượt nhận việc trong 30 ngày</p>
-                        </div>
-                    </div>
-                </div>
-
-                <?php if (empty($recentAcceptances)): ?>
-                <!-- Empty State -->
-                <div class="history-empty">
-                    <div class="empty-illustration" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);">
-                        <i class="bi bi-calendar-x" style="color: #10b981;"></i>
-                    </div>
-                    <h5>Chưa có lịch sử nhận việc</h5>
-                    <p>Khi bạn được chọn nhận việc, lịch sử sẽ được ghi lại tại đây</p>
-                </div>
-                <?php else: ?>
-                <!-- History List -->
-                <div class="history-list">
-                    <?php foreach ($recentAcceptances as $index => $acc): ?>
-                    <div class="history-card" style="animation-delay: <?php echo $index * 0.05; ?>s">
-                        <div class="history-card-main">
-                            <div class="history-icon">
-                                <i class="bi bi-person-check-fill"></i>
-                            </div>
-                            <div class="history-info">
-                                <h5 class="history-title"><?php echo htmlspecialchars($acc['title']); ?></h5>
-                                <div class="history-meta">
-                                    <span class="meta-item">
-                                        <i class="bi bi-person"></i>
-                                        <?php echo htmlspecialchars($acc['owner_name']); ?>
-                                    </span>
-                                    <span class="meta-item">
-                                        <i class="bi bi-calendar3"></i>
-                                        <?php echo date('d/m/Y H:i', strtotime($acc['accepted_at'])); ?>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="history-card-actions">
-                            <a href="view_post.php?id=<?php echo $acc['post_id']; ?>" class="action-btn btn-view" title="Xem tin">
-                                <i class="bi bi-eye"></i>
-                                <span>Xem tin</span>
-                            </a>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endif; ?>
-            </div>
+            <iframe id="iframe-history" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
         <style>
-        /* History Container */
-        .history-container {
-            padding: 1.5rem;
-        }
-        
-        .history-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-        
-        .history-header .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        
-        .history-header .header-icon {
-            width: 50px;
-            height: 50px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-        
-        .history-header h4 {
-            margin: 0;
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #ffffff;
-        }
-        
-        .history-header p {
-            margin: 0;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.85);
-        }
-        
-        /* Empty State */
-        .history-empty {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
-            border-radius: 16px;
-            border: 2px dashed #e2e8f0;
-        }
-        
-        .history-empty .empty-illustration {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1.5rem;
-        }
-        
-        .history-empty .empty-illustration i {
-            font-size: 3rem;
-        }
-        
-        .history-empty h5 {
-            color: #1e293b;
-            margin-bottom: 0.5rem;
-        }
-        
-        .history-empty p {
-            color: #64748b;
-            max-width: 400px;
-            margin: 0 auto;
-        }
-        
-        /* History List */
-        .history-list {
-            display: flex;
-            flex-direction: column;
-            gap: 1rem;
-        }
-        
-        .history-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 1rem;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.04);
-            border: 1px solid #e2e8f0;
-            transition: all 0.3s ease;
-            animation: slideIn 0.4s ease forwards;
-            opacity: 0;
-        }
-        
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(-20px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-        
-        .history-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-            border-color: #10b981;
-        }
-        
-        .history-card-main {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .history-icon {
-            width: 45px;
-            height: 45px;
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        
-        .history-info {
-            flex: 1;
-            min-width: 0;
-        }
-        
-        .history-title {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #1e293b;
-            margin: 0 0 0.5rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-        
-        .history-meta {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-        
-        .history-card-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
-        
-        @media (max-width: 768px) {
-            .history-card {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            
-            .history-card-actions {
-                justify-content: center;
-                margin-top: 0.5rem;
-                padding-top: 1rem;
-                border-top: 1px solid #f1f5f9;
-            }
-            
-            .history-meta {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0.25rem;
-            }
-        }
-        
         /* Favorites Section - Premium Design */
         .favorites-search-box {
             background: white;
@@ -3578,7 +3401,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <i class="bi bi-eye"></i>
                                 <span>Xem tin</span>
                             </a>
-                            <a href="chat.php?user_id=<?php echo $app['employer_email']; ?>" class="action-btn btn-chat" title="Nhắn tin">
+                            <a href="#" onclick="openDirectChat(<?php echo (int)($app['employer_id'] ?? 0); ?>); return false;" class="action-btn btn-chat" title="Nhắn tin">
                                 <i class="bi bi-chat-dots"></i>
                                 <span>Nhắn tin</span>
                             </a>
@@ -4199,7 +4022,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <a href="view_profile.php?id=<?php echo $rv['user_id'] ?? ''; ?>" class="btn-view-profile">
                                 <i class="bi bi-person"></i> Xem hồ sơ
                             </a>
-                            <a href="chat.php?with=<?php echo $rv['user_id'] ?? ''; ?>" class="btn-send-message">
+                            <a href="#" onclick="openDirectChat(<?php echo (int)($rv['user_id'] ?? 0); ?>); return false;" class="btn-send-message">
                                 <i class="bi bi-chat-dots"></i> Nhắn tin
                             </a>
                         </div>
@@ -4667,6 +4490,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         </script>
         
+        <!-- Section: Xem Hồ sơ Người dùng (QR quét được) -->
+        <div class="dashboard-section" id="section-view-profile" style="display: none;">
+            <iframe id="iframe-view-profile" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+        </div>
+        
         <!-- Section: Xem tin tuyển -->
         <div class="dashboard-section" id="section-search" style="display: none;">
             <iframe id="iframe-search" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
@@ -4848,6 +4676,11 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- Section: Hỗ trợ -->
         <div class="dashboard-section" id="section-support" style="display: none;">
             <iframe id="iframe-support" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
+        </div>
+        
+        <!-- Section: Bảng xếp hạng -->
+        <div class="dashboard-section" id="section-leaderboard" style="display: none;">
+            <iframe id="iframe-leaderboard" src="" style="width:100%;height:calc(100vh - 120px);border:none;"></iframe>
         </div>
         
         <style>
@@ -7533,116 +7366,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
                                     <button type="submit" class="action-btn action-btn-delete"><i class="fas fa-trash"></i> Xóa</button>
                                 </form>
-                                <!-- Action buttons based on status -->
-                                <?php $pst = ($p['status'] ?? 'open'); ?>
-                                <?php if ($pst === 'inactive'): ?>
-                                    <button type="button" class="action-btn action-btn-reopen" data-bs-toggle="modal" data-bs-target="#acceptModal-<?php echo (int)$p['id']; ?>"><i class="fas fa-redo"></i> Mở lại</button>
-                                <?php elseif ($pst === 'taken'): ?>
-                                    <form method="post" action="reopen_post.php" class="d-inline">
-                                        <input type="hidden" name="id" value="<?php echo (int)$p['id']; ?>">
-                                        <button type="submit" class="action-btn action-btn-accept"><i class="fas fa-unlock"></i> Mở</button>
-                                    </form>
-                                <?php elseif ($pst === 'closed'): ?>
-                                    <button type="button" class="action-btn" style="background:#e2e8f0;color:#94a3b8;cursor:not-allowed;" disabled><i class="fas fa-lock"></i> Đã đóng</button>
-                                <?php else: ?>
-                                    <button type="button" class="action-btn action-btn-accept" data-bs-toggle="modal" data-bs-target="#acceptModal-<?php echo (int)$p['id']; ?>" id="accept-trigger-<?php echo (int)$p['id']; ?>"><i class="fas fa-handshake"></i> Nhận việc</button>
-                                <?php endif; ?>
                             </div>
-                        </td>
-
-                                                        <!-- Modal: list contacts who messaged about this post -->
-                                                        <div class="modal fade accept-modal-student" id="acceptModal-<?php echo (int)$p['id']; ?>" tabindex="-1" aria-labelledby="acceptModalLabel-<?php echo (int)$p['id']; ?>" aria-hidden="true">
-                                                            <div class="modal-dialog modal-dialog-centered">
-                                                                <div class="modal-content accept-modal-content-student">
-                                                                    <div class="accept-modal-header-student">
-                                                                        <div class="accept-modal-icon-student">
-                                                                            <i class="fas fa-handshake"></i>
-                                                                        </div>
-                                                                        <div class="accept-modal-title-wrap-student">
-                                                                            <h5 class="accept-modal-title-student">Nhận việc</h5>
-                                                                            <p class="accept-modal-subtitle-student"><?php echo htmlspecialchars($p['title']); ?></p>
-                                                                        </div>
-                                                                        <button type="button" class="accept-modal-close-student" data-bs-dismiss="modal" aria-label="Close">
-                                                                            <i class="fas fa-times"></i>
-                                                                        </button>
-                                                                    </div>
-                                                                    <div class="accept-modal-body-student">
-                                                                        <?php
-                                                                            $sql = "
-                                                                                SELECT DISTINCT u.id, u.name FROM messages m JOIN users u ON m.sender_id = u.id WHERE m.post_id = ? AND m.sender_id != ?
-                                                                                UNION
-                                                                                SELECT DISTINCT u.id, u.name FROM conversations c
-                                                                                    JOIN users u ON u.id = (CASE WHEN c.user1_id = ? THEN c.user2_id ELSE c.user1_id END)
-                                                                                    WHERE (c.user1_id = ? OR c.user2_id = ?)
-                                                                                        AND EXISTS(
-                                                                                             SELECT 1 FROM direct_messages dm WHERE dm.conversation_id = c.id AND dm.created_at >= ?
-                                                                                        )
-                                                                            ";
-                                                                            $cstmt = $pdo->prepare($sql);
-                                                                            $postCreated = $p['created_at'] ?? date('Y-m-d H:i:s');
-                                                                            $cstmt->execute([(int)$p['id'], $userId, $userId, $userId, $userId, $postCreated]);
-                                                                            $contacts = $cstmt->fetchAll();
-                                                                        ?>
-                                                                        <?php if (!$contacts): ?>
-                                                                            <div class="accept-empty-state-student">
-                                                                                <div class="accept-empty-icon-student">
-                                                                                    <i class="fas fa-inbox"></i>
-                                                                                </div>
-                                                                                <p>Chưa có ai liên hệ về tin này</p>
-                                                                                <span>Hãy chờ bệnh nhân liên hệ với bạn</span>
-                                                                            </div>
-                                                                        <?php else: ?>
-                                                                            <form method="post" action="accept_applicant.php" class="accept-form-student">
-                                                                                <input type="hidden" name="post_id" value="<?php echo (int)$p['id']; ?>">
-                                                                                
-                                                                                <div class="accept-section-student">
-                                                                                    <label class="accept-section-label-student">
-                                                                                        <i class="fas fa-users"></i>
-                                                                                        Chọn người nhận việc
-                                                                                    </label>
-                                                                                    <div class="accept-candidates-list-student">
-                                                                                        <?php foreach ($contacts as $c): ?>
-                                                                                            <label class="accept-candidate-item-student" for="contact-<?php echo $c['id']; ?>-<?php echo $p['id']; ?>">
-                                                                                                <input class="accept-radio-student" type="radio" name="selected_user" id="contact-<?php echo $c['id']; ?>-<?php echo $p['id']; ?>" value="<?php echo $c['id']; ?>" required>
-                                                                                                <div class="accept-candidate-avatar-student">
-                                                                                                    <?php echo strtoupper(substr($c['name'], 0, 1)); ?>
-                                                                                                </div>
-                                                                                                <div class="accept-candidate-info-student">
-                                                                                                    <span class="accept-candidate-name-student"><?php echo htmlspecialchars($c['name']); ?></span>
-                                                                                                    <span class="accept-candidate-badge-student">Đã liên hệ</span>
-                                                                                                </div>
-                                                                                                <div class="accept-check-icon-student">
-                                                                                                    <i class="fas fa-check-circle"></i>
-                                                                                                </div>
-                                                                                            </label>
-                                                                                        <?php endforeach; ?>
-                                                                                    </div>
-                                                                                </div>
-                                                                                
-                                                                                <div class="accept-section-student">
-                                                                                    <label class="accept-section-label-student">
-                                                                                        <i class="fas fa-comment-alt"></i>
-                                                                                        Ghi chú (tuỳ chọn)
-                                                                                    </label>
-                                                                                    <textarea name="note" class="accept-textarea-student" rows="3" placeholder="Nhập lời nhắn hoặc ghi chú..."></textarea>
-                                                                                </div>
-                                                                                
-                                                                                <div class="accept-actions-student">
-                                                                                    <button type="button" class="accept-btn-cancel-student" data-bs-dismiss="modal">
-                                                                                        <i class="fas fa-times"></i>
-                                                                                        Hủy
-                                                                                    </button>
-                                                                                    <button type="submit" class="accept-btn-confirm-student">
-                                                                                        <i class="fas fa-check"></i>
-                                                                                        Xác Nhận
-                                                                                    </button>
-                                                                                </div>
-                                                                            </form>
-                                                                        <?php endif; ?>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                        </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -7653,181 +7377,272 @@ document.addEventListener('DOMContentLoaded', function() {
 </section>
 
 <?php require_once 'footer.php'; ?>
-<script>
-// AJAX accept handler for all accept forms on this page
-document.addEventListener('DOMContentLoaded', function(){
-    document.querySelectorAll('form[action="accept_applicant.php"]').forEach(function(form){
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            var fd = new FormData(form);
-            var postId = fd.get('post_id');
-            var submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.disabled = true;
-                    fetch(form.action, { method: 'POST', body: fd, headers: { 'Accept': 'application/json' } })
-                .then(function(res){ return res.json(); })
-                .then(function(json){
-                    if (json && json.success) {
-                        // Hide the 'Mở' button if present
-                        var showBtn = document.getElementById('show-accept-' + postId);
-                        if (showBtn) showBtn.classList.add('d-none');
-                        // Update accept trigger button (if exists)
-                        var trigger = document.getElementById('accept-trigger-' + postId) || document.querySelector('[data-bs-target="#acceptModal-' + postId + '"]');
-                        if (trigger) {
-                            // Convert the trigger into a reopen control labeled 'Mở'
-                            trigger.textContent = 'Mở';
-                            trigger.disabled = false;
-                            trigger.classList.remove('d-none','btn-success');
-                            trigger.classList.add('btn-outline-success');
-                            // Remove modal attributes so it no longer opens the modal
-                            trigger.removeAttribute('data-bs-toggle');
-                            trigger.removeAttribute('data-bs-target');
-                            // Attach a one-time click handler to reopen the post
-                            trigger.addEventListener('click', function reopenHandler(ev){
-                                if (!confirm('Bạn có chắc muốn mở lại tin này?')) return;
-                                var body = new URLSearchParams(); body.append('id', postId);
-                                fetch('reopen_post.php', { method: 'POST', body: body, headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' } })
-                                .then(function(r){ return r.json(); })
-                                .then(function(j){
-                                    if (j && j.success) {
-                                        var showBtn2 = document.getElementById('show-accept-' + postId);
-                                        if (showBtn2) { showBtn2.classList.remove('d-none'); }
-                                        // hide this trigger and update badge
-                                        trigger.classList.add('d-none');
-                                        var badge2 = document.getElementById('post-status-badge-' + postId);
-                                        if (badge2) { badge2.textContent = 'Đang mở'; badge2.className = 'badge bg-success'; }
-                                        else {
-                                            var triggerRow2 = trigger ? (trigger.closest('tr') || null) : null;
-                                            if (triggerRow2) {
-                                                var statusCell2 = triggerRow2.querySelector('td:nth-child(4)');
-                                                if (statusCell2) statusCell2.innerHTML = '<span class="badge bg-success">Đang mở</span>';
-                                            }
-                                        }
-                                    } else {
-                                        alert(j && j.message ? j.message : 'Không thể mở tin.');
-                                    }
-                                }).catch(function(){ alert('Lỗi kết nối.'); });
-                            }, { once: true });
-                        }
-                        // Update status badge in the same table row or by id
-                        var badge = document.getElementById('post-status-badge-' + postId);
-                        if (badge) { badge.textContent = 'Đã nhận việc này'; badge.className = 'badge bg-success'; }
-                        else {
-                            var triggerRow = trigger ? (trigger.closest('tr') || null) : null;
-                            if (triggerRow) {
-                                var statusCell = triggerRow.querySelector('td:nth-child(4)');
-                                if (statusCell) statusCell.innerHTML = '<span class="badge bg-success">Đã nhận việc này</span>';
-                            }
-                        }
-                        // hide modal
-                        var modalEl = document.getElementById('acceptModal-' + postId);
-                        if (modalEl) {
-                            var bsModal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
-                            bsModal.hide();
-                        }
-                    } else {
-                        alert(json && json.message ? json.message : 'Không thể hoàn tất thao tác');
-                        if (submitBtn) submitBtn.disabled = false;
-                    }
-                }).catch(function(){
-                    alert('Lỗi kết nối. Vui lòng thử lại.');
-                    if (submitBtn) submitBtn.disabled = false;
-                });
-        });
-    });
-});
-</script>
-<script>
-// Intercept reopen forms and ensure the 'Nhận việc' button appears reliably
-document.addEventListener('DOMContentLoaded', function(){
-    function createAcceptButton(postId) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'btn btn-sm btn-success';
-        btn.id = 'accept-trigger-' + postId;
-        btn.setAttribute('data-bs-toggle', 'modal');
-        btn.setAttribute('data-bs-target', '#acceptModal-' + postId);
-        btn.textContent = 'Nhận việc';
-        return btn;
-    }
 
-    document.querySelectorAll('form[action="reopen_post.php"]').forEach(function(form){
-        form.addEventListener('submit', function(e){
-            e.preventDefault();
-            var idInput = form.querySelector('input[name="id"]');
-            if (!idInput) return;
-            var postId = idInput.value;
-            var body = new URLSearchParams(); body.append('id', postId);
-            var submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn) submitBtn.disabled = true;
-            fetch(form.action, { method: 'POST', body: body, headers: { 'Accept': 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' } })
-            .then(function(r){ return r.json(); })
-            .then(function(json){
-                if (json && json.success) {
-                    // Update badge to 'Đang mở'
-                    var badge = document.getElementById('post-status-badge-' + postId);
-                    if (badge) { badge.textContent = 'Đang mở'; badge.className = 'badge bg-success'; }
-
-                    // Find action cell (closest td) to insert the accept button
-                    var actionCell = form.closest('td') || form.parentNode;
-                    // If accept button already exists, ensure it's visible and has modal attributes
-                    var existing = document.getElementById('accept-trigger-' + postId);
-                    if (existing) {
-                        existing.className = 'btn btn-sm btn-success';
-                        existing.setAttribute('data-bs-toggle', 'modal');
-                        existing.setAttribute('data-bs-target', '#acceptModal-' + postId);
-                    } else {
-                        var btn = createAcceptButton(postId);
-                        if (actionCell) actionCell.insertBefore(btn, form);
-                        else form.parentNode.insertBefore(btn, form);
-                    }
-
-                    // remove the reopen form
-                    form.remove();
-                } else {
-                    alert(json && json.message ? json.message : 'Không thể mở tin.');
-                    if (submitBtn) submitBtn.disabled = false;
-                }
-            }).catch(function(){
-                alert('Lỗi kết nối. Vui lòng thử lại.');
-                if (submitBtn) submitBtn.disabled = false;
-            });
-        });
-    });
-});
-</script>
-
-<script>
-// FINAL EVENT HANDLER - Đặt ở cuối file để đảm bảo chạy sau tất cả
-(function() {
-    console.log('=== FINAL EVENT HANDLER LOADED ===');
-    
-    // Xử lý click cho nút Nhận
-    document.addEventListener('click', function(e) {
-        var btn = e.target.closest('.btn-accept');
-        if (btn) {
-            console.log('btn-accept clicked!', btn);
-            e.preventDefault();
-            e.stopPropagation();
-            
-            var postId = btn.getAttribute('data-post-id');
-            var postTitle = btn.getAttribute('data-post-title');
-            
-            console.log('postId:', postId, 'postTitle:', postTitle);
-            
-            if (postId && postTitle && typeof showApplicants === 'function') {
-                showApplicants(parseInt(postId), postTitle);
-            } else if (typeof showApplicants !== 'function') {
-                alert('Lỗi: Hàm showApplicants không tồn tại!');
-            } else {
-                alert('Lỗi: Thiếu thông tin bài đăng');
-            }
-            return false;
-        }
-    }, true); // Use capture phase
-})();
-</script>
 
     </main><!-- /.dashboard-main -->
 </div><!-- /.dashboard-layout -->
 
+<?php include_once 'qr_scanner_widget.php'; ?>
+
+<!-- QR Code Modal -->
+<div id="qrModal" class="qr-modal-overlay" style="display: none;">
+    <div class="qr-modal-card">
+        <div class="qr-modal-header">
+            <h5 class="qr-modal-title"><i class="bi bi-qr-code-scan"></i> Mã QR cá nhân</h5>
+            <button class="qr-modal-close-btn" onclick="closeQRModal()">&times;</button>
+        </div>
+        <div class="qr-modal-body">
+            <div class="qr-code-wrapper">
+                <img id="qrCodeImg" src="" alt="Mã QR" class="qr-code-image">
+                <div class="qr-code-loader">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Đang tải...</span>
+                    </div>
+                </div>
+            </div>
+            <p class="qr-modal-desc">Quét mã QR này để truy cập nhanh vào hồ sơ cá nhân của bạn trên hệ thống.</p>
+            <div class="qr-link-box">
+                <input type="text" id="qrProfileUrl" class="form-control" readonly style="font-size: 0.8rem;">
+                <button class="btn btn-outline-primary btn-copy-link" onclick="copyProfileLink()" title="Sao chép liên kết">
+                    <i class="bi bi-copy"></i>
+                </button>
+            </div>
+        </div>
+        <div class="qr-modal-footer">
+            <button class="btn btn-secondary" onclick="closeQRModal()" style="font-size: 0.9rem; border-radius: 8px; padding: 0.4rem 1rem;">Đóng</button>
+            <a id="downloadQRBtn" href="" download="my_qr_code.png" class="btn btn-primary" onclick="downloadQRCode(event)" style="font-size: 0.9rem; border-radius: 8px; padding: 0.4rem 1rem;"><i class="bi bi-download"></i> Tải ảnh QR</a>
+        </div>
+    </div>
+</div>
+
+<style>
+/* QR Modal Styles */
+.qr-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.qr-modal-overlay.show {
+    opacity: 1;
+}
+
+.qr-modal-card {
+    background: #ffffff;
+    border-radius: 24px;
+    width: 90%;
+    max-width: 420px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    transform: translateY(20px);
+    transition: transform 0.3s ease;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.8);
+}
+
+.qr-modal-overlay.show .qr-modal-card {
+    transform: translateY(0);
+}
+
+.qr-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #0D1B36 0%, #1a3a5c 100%);
+    color: #ffffff;
+}
+
+.qr-modal-title {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qr-modal-close-btn {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.75rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.2s;
+    padding: 0;
+}
+
+.qr-modal-close-btn:hover {
+    color: #ffffff;
+}
+
+.qr-modal-body {
+    padding: 2rem 1.5rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+}
+
+.qr-code-wrapper {
+    width: 250px;
+    height: 250px;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 10px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+}
+
+.qr-code-image {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 8px;
+    display: none;
+}
+
+.qr-code-loader {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.qr-modal-desc {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin-bottom: 1.25rem;
+    line-height: 1.5;
+}
+
+.qr-link-box {
+    display: flex;
+    width: 100%;
+    gap: 0.5rem;
+}
+
+.qr-link-box input {
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    color: #475569;
+    font-size: 0.85rem;
+    text-overflow: ellipsis;
+}
+
+.btn-copy-link {
+    flex-shrink: 0;
+}
+
+.qr-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e2e8f0;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+</style>
+
+<script>
+function showMyQR() {
+    const userId = <?php echo json_encode($userId); ?>;
+    const modal = document.getElementById('qrModal');
+    const qrImage = document.getElementById('qrCodeImg');
+    const loader = document.querySelector('.qr-code-loader');
+    const linkInput = document.getElementById('qrProfileUrl');
+
+    // Create profile URL for student
+    const profileUrl = window.location.origin + window.location.pathname.replace('dashboard_student.php', '') + 'view_profile.php?id=' + userId;
+    linkInput.value = profileUrl;
+
+    // Set QR code API source
+    const qrApiUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=' + encodeURIComponent(profileUrl);
+    
+    // Show modal and loader, hide image initially
+    modal.style.display = 'flex';
+    setTimeout(() => modal.classList.add('show'), 10);
+    
+    qrImage.style.display = 'none';
+    loader.style.display = 'flex';
+    
+    // Load image
+    qrImage.src = qrApiUrl;
+    qrImage.onload = function() {
+        loader.style.display = 'none';
+        qrImage.style.display = 'block';
+    };
+}
+
+function closeQRModal() {
+    const modal = document.getElementById('qrModal');
+    modal.classList.remove('show');
+    setTimeout(() => {
+        modal.style.display = 'none';
+    }, 300);
+}
+
+function copyProfileLink() {
+    const linkInput = document.getElementById('qrProfileUrl');
+    linkInput.select();
+    linkInput.setSelectionRange(0, 99999);
+    
+    navigator.clipboard.writeText(linkInput.value).then(() => {
+        alert('Đã sao chép liên kết hồ sơ cá nhân!');
+    }).catch(err => {
+        console.error('Lỗi khi sao chép link:', err);
+    });
+}
+
+function downloadQRCode(event) {
+    event.preventDefault();
+    const qrImage = document.getElementById('qrCodeImg');
+    if (!qrImage.src) return;
+    
+    fetch(qrImage.src)
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'student_profile_qr_' + <?php echo json_encode($userId); ?> + '.png';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+        })
+        .catch(err => {
+            window.open(qrImage.src, '_blank');
+        });
+}
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    const modal = document.getElementById('qrModal');
+    if (event.target === modal) {
+        closeQRModal();
+    }
+});
+</script>
+
+<?php include_once 'chatbot_widget.php'; ?>
+
 <?php require_once 'footer.php'; ?>
+

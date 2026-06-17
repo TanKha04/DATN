@@ -1,5 +1,7 @@
-\documentclass[12pt,a4paper]{report}
+\documentclass[13pt,a4paper]{extreport}
+\usepackage{extsizes}
 \usepackage[utf8]{inputenc}
+\usepackage{mathptmx}
 \usepackage[vietnamese]{babel}
 \usepackage{graphicx}
 \usepackage{geometry}
@@ -14,6 +16,7 @@
 \usepackage{indentfirst}
 
 \geometry{left=3cm,right=2cm,top=2cm,bottom=2cm}
+\setlength{\parindent}{1.25cm} % Cấu hình thụt đầu dòng 1.25cm
 
 \titleformat{\chapter}[display]
 {\normalfont\Large\bfseries\centering}
@@ -114,18 +117,20 @@ Em xin chân thành cảm ơn!
 
 \section*{1. Lý do chọn đề tài}
 
-Trong bối cảnh xã hội hiện đại, nhu cầu chăm sóc sức khỏe tại nhà ngày càng trở nên phổ biến và cấp thiết. Đặc biệt với dân số già hóa, nhiều gia đình có người thân cần được chăm sóc y tế cơ bản nhưng không có điều kiện đưa đến bệnh viện thường xuyên hoặc thuê điều dưỡng chuyên nghiệp với chi phí cao.
+Trong bối cảnh xã hội ngày càng phát triển cùng với tốc độ già hóa dân số nhanh chóng, nhu cầu chăm sóc sức khỏe tại nhà ngày càng tăng cao, đặc biệt là đối với người cao tuổi, người mắc bệnh mãn tính hoặc bệnh nhân đang trong giai đoạn phục hồi chức năng sau phẫu thuật. Mặc dù vậy, việc tìm kiếm các dịch vụ hỗ trợ y tế tại gia chất lượng cao, có chuyên môn nghiệp vụ nhưng chi phí hợp lý vẫn là một bài toán khó đối với nhiều gia đình. Ở chiều ngược lại, sinh viên y khoa tại các trường đại học y dược luôn có nhu cầu tìm kiếm cơ hội thực hành lâm sàng ngoài giờ học. Việc chăm sóc bệnh nhân thực tế ngoài môi trường bệnh viện không chỉ giúp sinh viên tích lũy kinh nghiệm thực tiễn, hoàn thiện các kỹ năng chuyên môn nghiệp vụ và kỹ năng giao tiếp y học, mà còn mang lại nguồn thu nhập trang trải cuộc sống trong quá trình học tập.
 
-Mặt khác, sinh viên ngành Y trong quá trình học tập luôn cần cơ hội thực hành, tích lũy kinh nghiệm thực tế để nâng cao tay nghề. Việc tham gia chăm sóc sức khỏe tại nhà không chỉ giúp sinh viên có thêm thu nhập mà còn là cơ hội quý báu để áp dụng kiến thức đã học vào thực tiễn.
+Mặc dù nhu cầu kết nối giữa bệnh nhân và sinh viên y khoa là rất lớn và có tính tương hỗ cao, song phương thức kết nối hiện nay chủ yếu diễn ra tự phát trên các nền tảng mạng xã hội không chuyên dụng (như Facebook, Zalo, các hội nhóm cộng đồng). Điều này dẫn đến nhiều hạn chế nghiêm trọng: khó kiểm chứng danh tính và năng lực chuyên môn của sinh viên, khó sàng lọc đối tượng phù hợp với bệnh lý cụ thể, và thiếu tính minh bạch, an toàn về mặt thông tin cũng như pháp lý cho cả hai bên. Bên cạnh đó, đối với các nhu cầu y tế cơ bản (như đo huyết áp, tiêm truyền theo chỉ định, thay băng, rửa vết thương, tư vấn chăm sóc sức khỏe ban đầu), việc lựa chọn một sinh viên y khoa hỗ trợ tại nhà sẽ giúp bệnh nhân giảm thiểu thời gian chờ đợi tại bệnh viện, tiết kiệm chi phí đi lại và giảm tải đáng kể cho hệ thống y tế công cộng.
 
-Tuy nhiên, hiện tại chưa có nhiều nền tảng kết nối hiệu quả giữa hai đối tượng này. Xuất phát từ thực tế đó, em đã chọn đề tài "Web phát triển ứng dụng kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà".
+Do đó, đề tài ``Web phát triển ứng dụng kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà'' được thực hiện nhằm xây dựng một nền tảng trực tuyến chuyên biệt, an toàn và hiệu quả. Ứng dụng cung cấp giải pháp kết nối hai chiều minh bạch nhờ quy trình xác minh thẻ sinh viên nghiêm ngặt kết hợp kiểm duyệt của quản trị viên, hỗ trợ giao tiếp đa kênh trực quan (nhắn tin nội bộ, gọi Video Call thời gian thực qua WebRTC) cùng trợ lý ảo AI hỗ trợ tư vấn y học cơ bản 24/7. Đây không chỉ là giải pháp tối ưu giúp bệnh nhân tiếp cận dịch vụ chăm sóc sức khỏe uy tín tại nhà với chi phí hợp lý, mà còn tạo môi trường thực hành lâm sàng thực tế cho sinh viên y khoa, hướng tới xây dựng một cộng đồng y tế tương hỗ, phát triển bền vững.
 
 \section*{2. Mục đích nghiên cứu}
 
 \begin{itemize}
-    \item Xây dựng ứng dụng web kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà
-    \item Tạo môi trường an toàn, đáng tin cậy cho cả hai bên thông qua hệ thống xác minh danh tính
-    \item Cung cấp các công cụ giao tiếp, đánh giá và quản lý hiệu quả
+    \item Xây dựng website kết nối trực tuyến hai chiều giữa bệnh nhân có nhu cầu hỗ trợ y tế tại nhà với sinh viên Y khoa đang cần thực hành lâm sàng thực tế.
+    \item Thiết lập cơ chế kiểm duyệt thẻ sinh viên và đánh giá hai chiều nhằm tạo dựng một không gian giao dịch y tế an toàn, đáng tin cậy.
+    \item Tích hợp các giải pháp giao tiếp đa kênh bao gồm nhắn tin trực tuyến và gọi cuộc gọi Video thời gian thực (WebRTC Video Call).
+    \item Nghiên cứu tích hợp Trợ lý ảo AI Chatbot hỗ trợ tư vấn các kiến thức y khoa cơ bản và định hướng dịch vụ chăm sóc sức khỏe.
+    \item Tự động hóa quy trình quản lý lịch hẹn y tế (Appointments) giúp tối ưu thời gian và nâng cao trải nghiệm người dùng.
 \end{itemize}
 
 \section*{3. Đối tượng nghiên cứu}
@@ -147,69 +152,56 @@ Tuy nhiên, hiện tại chưa có nhiều nền tảng kết nối hiệu quả
 
 \chapter{TỔNG QUAN}
 
-\section{Giới thiệu bài toán}
+\section{Lý do chọn đề tài}
+Trong bối cảnh xã hội ngày càng phát triển cùng với tốc độ già hóa dân số nhanh chóng, nhu cầu chăm sóc sức khỏe tại nhà ngày càng tăng cao, đặc biệt là đối với người cao tuổi, người mắc bệnh mãn tính hoặc bệnh nhân đang trong giai đoạn phục hồi chức năng sau phẫu thuật. Mặc dù vậy, việc tìm kiếm các dịch vụ hỗ trợ y tế tại gia chất lượng cao, có chuyên môn nghiệp vụ nhưng chi phí hợp lý vẫn là một bài toán khó đối với nhiều gia đình. Ở chiều ngược lại, sinh viên y khoa tại các trường đại học y dược luôn có nhu cầu tìm kiếm cơ hội thực hành lâm sàng ngoài giờ học. Việc chăm sóc bệnh nhân thực tế ngoài môi trường bệnh viện không chỉ giúp sinh viên tích lũy kinh nghiệm thực tiễn, hoàn thiện các kỹ năng chuyên môn nghiệp vụ và kỹ năng giao tiếp y học, mà còn mang lại nguồn thu nhập trang trải cuộc sống trong quá trình học tập.
 
-Trong những năm gần đây, nhu cầu chăm sóc sức khỏe tại nhà tại Việt Nam ngày càng tăng cao do nhiều yếu tố:
+Mặc dù nhu cầu kết nối giữa bệnh nhân và sinh viên y khoa là rất lớn và có tính tương hỗ cao, song phương thức kết nối hiện nay chủ yếu diễn ra tự phát trên các nền tảng mạng xã hội không chuyên dụng (như Facebook, Zalo, các hội nhóm cộng đồng). Điều này dẫn đến nhiều hạn chế nghiêm trọng: khó kiểm chứng danh tính và năng lực chuyên môn của sinh viên, khó sàng lọc đối tượng phù hợp với bệnh lý cụ thể, và thiếu tính minh bạch, an toàn về mặt thông tin cũng như pháp lý cho cả hai bên. Bên cạnh đó, đối với các nhu cầu y tế cơ bản (như đo huyết áp, tiêm truyền theo chỉ định, thay băng, rửa vết thương, tư vấn chăm sóc sức khỏe ban đầu), việc lựa chọn một sinh viên y khoa hỗ trợ tại nhà sẽ giúp bệnh nhân giảm thiểu thời gian chờ đợi tại bệnh viện, tiết kiệm chi phí đi lại và giảm tải đáng kể cho hệ thống y tế công cộng.
 
+Do đó, đề tài ``Web phát triển ứng dụng kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà'' được thực hiện nhằm xây dựng một nền tảng trực tuyến chuyên biệt, an toàn và hiệu quả. Ứng dụng cung cấp giải pháp kết nối hai chiều minh bạch nhờ quy trình xác minh thẻ sinh viên nghiêm ngặt kết hợp kiểm duyệt của quản trị viên, hỗ trợ giao tiếp đa kênh trực quan (nhắn tin nội bộ, gọi Video Call thời gian thực qua WebRTC) cùng trợ lý ảo AI hỗ trợ tư vấn y học cơ bản 24/7. Đây không chỉ là giải pháp tối ưu giúp bệnh nhân tiếp cận dịch vụ chăm sóc sức khỏe uy tín tại nhà với chi phí hợp lý, mà còn tạo môi trường thực hành lâm sàng thực tế cho sinh viên y khoa, hướng tới xây dựng một cộng đồng y tế tương hỗ, phát triển bền vững.
+
+\section{Mục đích nghiên cứu}
+Mục đích chính của đề tài là xây dựng một website hoàn chỉnh hỗ trợ kết nối hai chiều trực tuyến giữa bệnh nhân (hoặc người thân có nhu cầu tìm kiếm người hỗ trợ y tế tại gia) và sinh viên Y khoa đang học tập tại các trường đại học y dược (cần cơ hội thực hành lâm sàng thực tế ngoài giờ học). Để giải quyết triệt để các rủi ro của phương thức kết nối tự phát truyền thống và nâng cao trải nghiệm người dùng, đề tài tập trung hiện thực hóa các mục tiêu cốt lõi sau:
 \begin{itemize}
-    \item Dân số già hóa nhanh chóng, số lượng người cao tuổi cần được chăm sóc ngày càng nhiều
-    \item Chi phí nằm viện cao, nhiều gia đình lựa chọn chăm sóc người thân tại nhà
-    \item Các bệnh mãn tính như tiểu đường, huyết áp cao cần theo dõi và chăm sóc thường xuyên
-    \item Nhu cầu phục hồi chức năng sau phẫu thuật hoặc tai nạn
+    \item \textbf{Xây dựng môi trường kết nối trực tuyến an toàn và đáng tin cậy:} Triển khai cơ chế xác minh tài khoản sinh viên qua thẻ sinh viên kết hợp quy trình duyệt hồ sơ thủ công của quản trị viên (Admin), từ đó kiểm chứng danh tính và ngăn chặn các tài khoản mạo danh, giả danh sinh viên Y khoa.
+    \item \textbf{Tích hợp công cụ giao tiếp đa kênh trực quan thời gian thực:} Hiện thực hóa tính năng nhắn tin nội bộ trao đổi thông tin bảo mật và tích hợp giải pháp cuộc gọi Video trực tuyến (Video Call sử dụng công nghệ WebRTC). Tính năng này giúp bệnh nhân đối chiếu trực quan sinh viên Y khoa trước khi gặp mặt, đồng thời giúp sinh viên xem trước tình trạng lâm sàng (vết thương, đơn thuốc, bệnh án) của bệnh nhân để chuẩn bị dụng cụ y tế phù hợp.
+    \item \textbf{Tích hợp Trợ lý ảo trí tuệ nhân tạo (AI Assistant) hỗ trợ 24/7:} Nghiên cứu và triển khai chatbot thông minh (kết nối qua Hugging Face/Gemini APIs) hỗ trợ tư vấn các kiến thức y khoa cơ bản, hướng dẫn sơ cứu ban đầu và giải đáp thắc mắc về quy trình vận hành hệ thống cho người dùng mọi lúc mọi nơi.
+    \item \textbf{Thiết lập quy trình quản lý chuyên nghiệp và nâng cao uy tín cộng đồng:} Tự động hóa quy trình đặt lịch hẹn y tế (Appointments) ngay khi bệnh nhân phê duyệt sinh viên, kết hợp cơ chế đánh giá hai chiều (Rating \& Review) để duy trì chất lượng dịch vụ và nâng cao trách nhiệm của cộng đồng.
+    \item \textbf{Hiện thực hóa về mặt kỹ thuật và nghiên cứu học thuật:} Ứng dụng các phương pháp phân tích thiết kế hệ thống chuẩn hóa (mô hình UML: Use Case Diagram, Class Diagram, ERD), xây dựng kiến trúc Client-Server dựa trên backend PHP thuần, hệ quản trị cơ sở dữ liệu MySQL, frontend responsive bằng Bootstrap 5.3, và ảo hóa container qua Docker nhằm tối ưu hóa tính mở rộng, bảo mật và khả năng triển khai thực tiễn của phần mềm.
 \end{itemize}
 
-Đồng thời, sinh viên ngành Y tại Việt Nam đang đối mặt với nhiều thách thức:
+\section{Đối tượng nghiên cứu}
+Đối tượng nghiên cứu của đề tài tập trung vào các chủ thể và khía cạnh công nghệ sau:
+\begin{enumerate}
+    \item \textbf{Đối tượng người dùng}:
+    \begin{itemize}
+        \item Bệnh nhân hoặc người nhà bệnh nhân có nhu cầu tìm người chăm sóc sức khỏe tại nhà (đặc biệt là người cao tuổi, người mắc bệnh mãn tính hoặc người cần phục hồi chức năng sau phẫu thuật).
+        \item Sinh viên Y khoa tại các trường đại học y dược có nhu cầu tìm kiếm công việc chăm sóc sức khỏe tại gia ngoài giờ học để tích lũy kinh nghiệm lâm sàng và có thêm thu nhập.
+    \end{itemize}
+    \item \textbf{Đối tượng công nghệ}:
+    \begin{itemize}
+        \item Quy trình và nghiệp vụ kết nối y tế (quy trình đăng tin tuyển dụng/ứng tuyển, quy trình duyệt ứng viên và tự động tạo lịch hẹn).
+        \item Các công nghệ lập trình web: ngôn ngữ backend PHP, hệ quản trị cơ sở dữ liệu MySQL, frontend Bootstrap 5.3.
+        \item Các công nghệ kết nối nâng cao: WebRTC cho cuộc gọi video Peer-to-Peer, tích hợp APIs trí tuệ nhân tạo (Gemini AI/Hugging Face).
+        \item Môi trường phát triển và triển khai: XAMPP, Docker containerization.
+    \end{itemize}
+\end{enumerate}
 
-\begin{itemize}
-    \item Cần nhiều thời gian thực hành để nâng cao tay nghề
-    \item Chi phí học tập cao, cần có nguồn thu nhập hỗ trợ
-    \item Cơ hội thực tập tại bệnh viện có hạn
-    \item Thiếu kênh kết nối với người có nhu cầu chăm sóc sức khỏe
-\end{itemize}
-
-Bài toán đặt ra là làm thế nào để kết nối hiệu quả giữa hai đối tượng này, đảm bảo tính xác thực của sinh viên Y, sự an toàn cho cả hai bên, giao tiếp thuận tiện và có cơ chế đánh giá phản hồi.
-
-\section{Tình hình nghiên cứu trong và ngoài nước}
-
-\subsection{Tình hình trong nước}
-
-Tại Việt Nam, một số ứng dụng và dịch vụ liên quan đến chăm sóc sức khỏe tại nhà đã xuất hiện:
-
-\begin{itemize}
-    \item \textbf{Các ứng dụng đặt lịch khám bệnh:} Như Docosan, BookingCare cho phép đặt lịch khám tại bệnh viện nhưng chưa tập trung vào chăm sóc tại nhà
-    \item \textbf{Dịch vụ điều dưỡng tại nhà:} Một số công ty cung cấp dịch vụ điều dưỡng chuyên nghiệp nhưng chi phí cao
-    \item \textbf{Các nhóm Facebook, Zalo:} Kết nối không chính thức, thiếu xác minh và đảm bảo
-\end{itemize}
-
-\subsection{Tình hình ngoài nước}
-
-Trên thế giới, nhiều nền tảng tương tự đã được phát triển:
-
-\begin{itemize}
-    \item \textbf{Care.com (Mỹ):} Nền tảng kết nối người chăm sóc với gia đình có nhu cầu
-    \item \textbf{Honor (Mỹ):} Dịch vụ chăm sóc người cao tuổi tại nhà
-    \item \textbf{Homage (Singapore):} Ứng dụng kết nối điều dưỡng với người cần chăm sóc
-\end{itemize}
-
-\section{Mục tiêu và phạm vi đề tài}
-
-\subsection{Mục tiêu}
-
-\begin{itemize}
-    \item Xây dựng website hoàn chỉnh với giao diện thân thiện, dễ sử dụng
-    \item Phát triển hệ thống xác minh sinh viên Y đảm bảo độ tin cậy
-    \item Tích hợp các tính năng giao tiếp: nhắn tin, kết bạn
-    \item Xây dựng hệ thống đánh giá và báo cáo vi phạm
-    \item Phát triển trang quản trị viên với đầy đủ chức năng
-\end{itemize}
-
-\subsection{Phạm vi}
-
-\begin{itemize}
-    \item Ứng dụng web responsive, tương thích đa thiết bị
-    \item Hỗ trợ hai loại người dùng: sinh viên Y và bệnh nhân
-    \item Quản trị viên có quyền kiểm duyệt và quản lý toàn bộ hệ thống
-\end{itemize}
+\section{Phạm vi nghiên cứu}
+Phạm vi nghiên cứu của đề tài được phân định như sau:
+\begin{enumerate}
+    \item \textbf{Phạm vi nội dung và chức năng}:
+    \begin{itemize}
+        \item Thiết kế và cài đặt các chức năng cốt lõi cho hai đối tượng người dùng chính: Bệnh nhân (đăng tin tuyển dụng kèm ảnh minh chứng bệnh án, tìm kiếm sinh viên, nhắn tin, gọi video, tạo lịch hẹn, đánh giá) và Sinh viên (đăng tin ứng tuyển kèm thẻ sinh viên, xin xác thực, kết bạn, nhắn tin, xem lịch sử nhận việc).
+        \item Thiết kế trang quản trị (Admin Dashboard) hỗ trợ kiểm duyệt bài đăng, duyệt xác minh thẻ sinh viên, xử lý báo cáo vi phạm và gửi thông báo hệ thống.
+        \item Tích hợp Chatbot AI hỗ trợ tư vấn y học cơ bản.
+        \item \textit{Giới hạn}: Đồ án chưa tích hợp hệ thống thanh toán trực tuyến (e-payment) hoặc đặt cọc giữ tiền (escrow payment); giao dịch tài chính và thanh toán hiện tại do hai bên tự thỏa thuận ngoài hệ thống. Chưa xây dựng ứng dụng di động native (iOS/Android).
+    \end{itemize}
+    \item \textbf{Phạm vi kỹ thuật và môi trường}:
+    \begin{itemize}
+        \item Hệ thống được hiện thực hóa dưới dạng Website Responsive hoạt động tối ưu trên cả desktop và thiết bị di động.
+        \item Môi trường phát triển và kiểm thử được triển khai cục bộ (Localhost) bằng XAMPP và ảo hóa container qua Docker (Apache + PHP + MySQL). Chưa triển khai trên các hệ thống Cloud server thực tế.
+    \end{itemize}
+\end{enumerate}
 
 \newpage
 
@@ -536,6 +528,130 @@ created\_at & TIMESTAMP & Thời gian đánh giá \\
 \end{tabular}
 \end{table}
 
+\begin{table}[H]
+\centering
+\caption{Bảng Appointments - Quản lý lịch hẹn y tế}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+patient\_id & INT (FK) & ID người bệnh cần chăm sóc \\
+student\_id & INT (FK) & ID sinh viên Y nhận việc \\
+appointment\_date & DATETIME & Thời gian thực hiện chăm sóc \\
+status & ENUM & Trạng thái lịch hẹn (pending/confirmed/completed/cancelled) \\
+notes & TEXT & Ghi chú/yêu cầu lâm sàng đặc biệt \\
+created\_at & TIMESTAMP & Thời gian tạo lịch hẹn \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng Notifications - Thông báo hệ thống}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+user\_id & INT (FK) & ID người nhận thông báo \\
+type & VARCHAR(50) & Phân loại thông báo (message/appointment/comment/verify) \\
+title & VARCHAR(255) & Tiêu đề thông báo \\
+message & TEXT & Nội dung thông báo chi tiết \\
+link & VARCHAR(255) & Liên kết chuyển hướng nhanh khi click \\
+is\_read & TINYINT & Trạng thái đã đọc (0: Chưa đọc, 1: Đã đọc) \\
+created\_at & TIMESTAMP & Thời gian gửi thông báo \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng AI Conversations - Cuộc trò chuyện với Trợ lý ảo}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+user\_id & INT (FK) & ID người dùng tương tác với AI \\
+title & VARCHAR(255) & Tiêu đề phiên trò chuyện \\
+created\_at & TIMESTAMP & Thời gian bắt đầu \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng AI Messages - Chi tiết tin nhắn hội thoại AI}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+conversation\_id & INT (FK) & ID phiên trò chuyện tương ứng \\
+role & ENUM & Vai trò người gửi (user / model) \\
+content & TEXT & Nội dung câu hỏi hoặc tư vấn \\
+source & VARCHAR(50) & Nguồn xử lý AI (gemini/huggingface) \\
+created\_at & TIMESTAMP & Thời gian gửi tin nhắn \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng Knowledge Posts - Bài viết kiến thức y học}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+user\_id & INT (FK) & ID tác giả bài viết \\
+title & VARCHAR(255) & Tiêu đề bài viết chia sẻ sức khỏe \\
+content & TEXT & Nội dung chuyên môn chi tiết \\
+category & VARCHAR(100) & Chuyên khoa/Danh mục y học \\
+tags & TEXT & Nhãn từ khóa tìm kiếm nhanh \\
+is\_featured & TINYINT & Đánh dấu bài viết nổi bật trang chủ \\
+view\_count & INT & Số lượt xem bài viết \\
+created\_at & TIMESTAMP & Thời gian đăng bài \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng Activity Logs - Nhật ký hoạt động hệ thống}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+user\_id & INT (FK) & ID người thực hiện hành động \\
+action & VARCHAR(100) & Tên hành động thực hiện \\
+description & TEXT & Mô tả chi tiết hành động \\
+ip\_address & VARCHAR(45) & Địa chỉ IP thực hiện thao tác \\
+user\_agent & TEXT & Thông tin trình duyệt/thiết bị \\
+created\_at & TIMESTAMP & Thời gian ghi nhận nhật ký \\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}[H]
+\centering
+\caption{Bảng Friendships - Quan hệ bạn bè giữa người dùng}
+\begin{tabular}{|l|l|l|}
+\hline
+\textbf{Tên trường} & \textbf{Kiểu dữ liệu} & \textbf{Mô tả} \\
+\hline
+id & INT (PK) & Khóa chính, tự tăng \\
+user\_id & INT (FK) & ID người gửi lời mời kết bạn \\
+friend\_id & INT (FK) & ID người nhận lời mời kết bạn \\
+status & ENUM & Trạng thái kết bạn (pending/accepted/blocked) \\
+created\_at & TIMESTAMP & Thời gian gửi lời mời \\
+accepted\_at & TIMESTAMP & Thời gian chấp nhận kết bạn \\
+\hline
+\end{tabular}
+\end{table}
+
 \section{Cài đặt hệ thống}
 
 \subsection{Cấu trúc thư mục dự án}
@@ -744,6 +860,11 @@ Trang bảng điều khiển sinh viên hiển thị:
 13 & Kiểm duyệt bài viết (admin) & Hoàn thành \\
 14 & Xử lý khiếu nại (admin) & Hoàn thành \\
 15 & Gửi thông báo (admin) & Hoàn thành \\
+16 & Gọi Video trực tiếp thời gian thực (WebRTC) & Hoàn thành \\
+17 & Trợ lý ảo AI tư vấn y học (Hugging Face) & Hoàn thành \\
+18 & Hệ thống đặt và quản lý lịch hẹn (Appointments) & Hoàn thành \\
+19 & Cổng kiến thức sức khỏe cộng đồng (Knowledge Posts) & Hoàn thành \\
+20 & Nhật ký hoạt động an ninh hệ thống (Activity Logs) & Hoàn thành \\
 \hline
 \end{tabular}
 \end{table}
@@ -751,22 +872,21 @@ Trang bảng điều khiển sinh viên hiển thị:
 \subsection{Ưu điểm của hệ thống}
 
 \begin{itemize}
-    \item \textbf{Giao diện thân thiện:} Thiết kế đơn giản, dễ sử dụng cho mọi đối tượng
-    \item \textbf{Responsive:} Hiển thị tốt trên cả máy tính và điện thoại
-    \item \textbf{Bảo mật:} Áp dụng các biện pháp bảo mật cơ bản
-    \item \textbf{Xác minh sinh viên:} Đảm bảo độ tin cậy của sinh viên Y
-    \item \textbf{Đa chức năng:} Tích hợp nhiều tính năng hữu ích
-    \item \textbf{Quản trị đầy đủ:} Admin có thể kiểm soát toàn bộ hệ thống
+    \item \textbf{Giao diện thân thiện:} Thiết kế đơn giản, trực quan, dễ sử dụng cho bệnh nhân lớn tuổi
+    \item \textbf{Responsive:} Hiển thị tốt trên cả máy tính và thiết bị di động
+    \item \textbf{Xác minh sinh viên:} Cơ chế kiểm duyệt thẻ sinh viên bởi Admin giúp tăng độ tin cậy và an toàn
+    \item \textbf{Giao tiếp đa phương thức:} Tích hợp thành công cuộc gọi Video Call WebRTC giúp trao đổi trực quan bệnh trạng từ xa
+    \item \textbf{Tích hợp AI thông minh:} Trợ lý ảo AI (BlenderBot/Gemini) hỗ trợ giải đáp y học cơ bản 24/7
+    \item \textbf{Quản lý chuyên nghiệp:} Tự động hóa tạo lịch hẹn và ghi nhật ký kiểm toán hệ thống tăng bảo mật thông tin
+    \item \textbf{Quản trị đầy đủ:} Trang Admin Dashboard mạnh mẽ kiểm soát toàn bộ bài đăng và người dùng
 \end{itemize}
 
 \subsection{Hạn chế}
 
 \begin{itemize}
-    \item Chưa có ứng dụng mobile native
-    \item Chưa tích hợp thanh toán trực tuyến
-    \item Chưa có tính năng video call
-    \item Chưa có hệ thống thông báo real-time
-    \item Chưa tích hợp bản đồ để tìm kiếm theo vị trí
+    \item Chưa phát triển ứng dụng di động dạng Native (iOS/Android)
+    \item Chưa tích hợp cổng thanh toán trực tuyến tự động (MoMo, VNPay...)
+    \item Chưa tích hợp bản đồ (Google Maps) để tìm kiếm theo bán kính vị trí thực tế
 \end{itemize}
 
 \newpage
@@ -778,21 +898,23 @@ Trang bảng điều khiển sinh viên hiển thị:
 Sau quá trình nghiên cứu và phát triển, đồ án đã hoàn thành các mục tiêu đề ra:
 
 \begin{itemize}
-    \item Xây dựng thành công website kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà
-    \item Phát triển hệ thống xác minh sinh viên đảm bảo độ tin cậy
-    \item Tích hợp đầy đủ các tính năng giao tiếp: nhắn tin, kết bạn
-    \item Xây dựng hệ thống đánh giá và báo cáo vi phạm
-    \item Hoàn thiện trang quản trị với đầy đủ chức năng
+    \item Xây dựng thành công website kết nối sinh viên ngành Y với người có nhu cầu chăm sóc sức khỏe tại nhà.
+    \item Phát triển hệ thống xác minh thẻ sinh viên nghiêm ngặt đảm bảo độ tin cậy cho cộng đồng.
+    \item Tích hợp thành công cuộc gọi điện thoại và cuộc gọi Video trực tuyến thời gian thực qua công nghệ WebRTC.
+    \item Tích hợp Trợ lý ảo AI Chatbot (sử dụng APIs Hugging Face/Gemini) hỗ trợ giải đáp y học cơ bản và vận hành hệ thống 24/7.
+    \item Hoàn thành hệ thống đặt lịch hẹn y tế (Appointments) tự động sau khi tuyển dụng thành công.
+    \item Tích hợp đầy đủ các tính năng giao tiếp: nhắn tin, kết bạn, đánh giá 2 chiều và báo cáo vi phạm.
+    \item Hoàn thiện trang quản trị Admin Dashboard trực quan với đầy đủ chức năng quản lý.
 \end{itemize}
 
 Ứng dụng đã giải quyết được bài toán kết nối giữa sinh viên Y và người có nhu cầu chăm sóc sức khỏe, tạo ra một nền tảng trung gian đáng tin cậy cho cả hai bên.
 
 \textbf{Đóng góp của đồ án:}
 \begin{itemize}
-    \item Cung cấp giải pháp công nghệ cho vấn đề thực tế
-    \item Hỗ trợ sinh viên Y có thêm cơ hội thực hành và thu nhập
-    \item Giúp người có nhu cầu dễ dàng tìm được người chăm sóc phù hợp
-    \item Góp phần giảm tải cho hệ thống y tế
+    \item Cung cấp giải pháp công nghệ cho vấn đề thực tế tại cộng đồng.
+    \item Hỗ trợ sinh viên Y có thêm cơ hội thực hành lâm sàng thực tế ngoài bệnh viện và có thêm thu nhập.
+    \item Giúp người có nhu cầu dễ dàng tìm được người chăm sóc phù hợp với chi phí hợp lý.
+    \item Góp phần giảm tải cho hệ thống y tế công cộng.
 \end{itemize}
 
 \section{Hướng phát triển}
@@ -801,25 +923,23 @@ Trong tương lai, đồ án có thể được mở rộng theo các hướng s
 
 \subsection{Phát triển ứng dụng mobile}
 \begin{itemize}
-    \item Xây dựng ứng dụng iOS và Android native
-    \item Hoặc sử dụng React Native/Flutter để phát triển cross-platform
-    \item Tích hợp push notification
+    \item Xây dựng ứng dụng iOS và Android native.
+    \item Hoặc sử dụng React Native/Flutter để phát triển cross-platform.
+    \item Tích hợp push notification.
 \end{itemize}
 
 \subsection{Tích hợp thanh toán}
 \begin{itemize}
-    \item Tích hợp các cổng thanh toán: VNPay, Momo, ZaloPay
-    \item Hệ thống ví điện tử trong ứng dụng
-    \item Quản lý hoa hồng và thanh toán tự động
+    \item Tích hợp các cổng thanh toán: VNPay, Momo, ZaloPay.
+    \item Hệ thống ví điện tử trong ứng dụng.
+    \item Quản lý hoa hồng và thanh toán tự động.
 \end{itemize}
 
 \subsection{Nâng cao tính năng}
 \begin{itemize}
-    \item Video call tích hợp
-    \item Thông báo real-time với WebSocket
-    \item Tích hợp Google Maps để tìm kiếm theo vị trí
-    \item AI chatbot hỗ trợ người dùng
-    \item Hệ thống đặt lịch hẹn
+    \item Ứng dụng Machine Learning vào hệ thống gợi ý để tự động đề xuất sinh viên phù hợp nhất dựa trên bệnh lý của bệnh nhân.
+    \item Tích hợp giao thức WebSocket để hỗ trợ nhắn tin và thông báo real-time.
+    \item Tích hợp Google Maps API để hỗ trợ tìm kiếm và định vị sinh viên/bệnh nhân theo bán kính khu vực.
 \end{itemize}
 
 \subsection{Mở rộng quy mô}

@@ -92,17 +92,17 @@ if (!$isEmbed) {
     echo '<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Bạn bè</title>';
     echo '<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">';
     echo '<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">';
-    echo '<style>body{background:#f1f5f9;margin:0;padding:0;}</style>';
+    echo '<style>body{background:#f1f5f9;margin:0;padding:0;} html,body{height:100%!important;} .friends-page{max-width:100%!important;width:100%!important;min-height:calc(100vh - 3rem)!important;height:calc(100vh - 3rem)!important;box-sizing:border-box;display:flex;flex-direction:column;} .friends-grid{flex:1;overflow-y:auto;}</style>';
     echo '</head><body>';
 }
 ?>
 
 <style>
-.friends-page { max-width: 1000px; margin: 0 auto; padding: 1.5rem; }
+.friends-page { <?php echo !$isEmbed ? 'max-width: 1000px; margin: 0 auto;' : ''; ?> padding: 1.5rem; }
 </style>
 
 <style>
-.friends-header { background: linear-gradient(135deg, #059669 0%, #10b981 50%, #34d399 100%); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; color: #fff; }
+.friends-header { background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 20px; padding: 2rem; margin-bottom: 1.5rem; color: #fff; }
 .friends-header h1 { font-size: 1.75rem; font-weight: 800; margin: 0 0 0.5rem; }
 .friends-header p { margin: 0; opacity: 0.9; }
 .friends-search { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 12px; padding: 0.75rem 1rem 0.75rem 2.75rem; color: #fff; width: 100%; max-width: 400px; margin-top: 1rem; }
@@ -111,25 +111,25 @@ if (!$isEmbed) {
 .friends-search-wrap i { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: rgba(255,255,255,0.7); }
 .friends-tabs { display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; }
 .friends-tab { padding: 0.75rem 1.5rem; border-radius: 12px; background: #f1f5f9; color: #64748b; text-decoration: none; font-weight: 600; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem; }
-.friends-tab:hover { background: #d1fae5; color: #059669; }
-.friends-tab.active { background: linear-gradient(135deg, #059669, #10b981); color: #fff; }
+.friends-tab:hover { background: #dbeafe; color: #1e40af; }
+.friends-tab.active { background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; }
 .friends-tab .badge { background: #ef4444; color: #fff; padding: 0.15rem 0.5rem; border-radius: 10px; font-size: 0.75rem; }
 .friends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
 .friend-card { background: #fff; border-radius: 16px; padding: 1.25rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; transition: all 0.3s; }
 .friend-card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.1); transform: translateY(-2px); }
 .friend-info { display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; }
-.friend-avatar { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; background: linear-gradient(135deg, #059669, #10b981); }
-.friend-avatar-placeholder { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #059669, #10b981); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; }
+.friend-avatar { width: 56px; height: 56px; border-radius: 14px; object-fit: cover; background: linear-gradient(135deg, #1e40af, #3b82f6); }
+.friend-avatar-placeholder { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg, #1e40af, #3b82f6); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700; }
 .friend-details { flex: 1; min-width: 0; }
 .friend-name { font-weight: 700; color: #1e293b; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-.friend-name .verified { color: #10b981; font-size: 0.9rem; }
+.friend-name .verified { color: #3b82f6; font-size: 0.9rem; }
 .friend-meta { font-size: 0.85rem; color: #64748b; }
 .friend-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .friend-btn { padding: 0.5rem 1rem; border-radius: 10px; font-size: 0.85rem; font-weight: 600; border: none; cursor: pointer; transition: all 0.3s; display: inline-flex; align-items: center; gap: 0.35rem; text-decoration: none; }
 .friend-btn.primary { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; }
 .friend-btn.primary:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
-.friend-btn.success { background: linear-gradient(135deg, #10b981, #059669); color: #fff; }
-.friend-btn.success:hover { box-shadow: 0 4px 12px rgba(16,185,129,0.4); }
+.friend-btn.success { background: linear-gradient(135deg, #3b82f6, #1e40af); color: #fff; }
+.friend-btn.success:hover { box-shadow: 0 4px 12px rgba(59,130,246,0.4); }
 .friend-btn.danger { background: rgba(239,68,68,0.1); color: #dc2626; }
 .friend-btn.danger:hover { background: #dc2626; color: #fff; }
 .friend-btn.outline { background: #f1f5f9; color: #64748b; }
@@ -149,25 +149,28 @@ if (!$isEmbed) {
         <form method="get" class="friends-search-wrap">
             <i class="bi bi-search"></i>
             <input type="hidden" name="tab" value="search">
+            <?php if ($isEmbed): ?>
+                <input type="hidden" name="embed" value="1">
+            <?php endif; ?>
             <input type="text" name="q" class="friends-search" placeholder="Tìm kiếm người dùng..." value="<?php echo htmlspecialchars($searchQuery); ?>">
         </form>
     </div>
 
     <div class="friends-tabs">
-        <a href="friends.php?tab=friends" class="friends-tab <?php echo $tab === 'friends' ? 'active' : ''; ?>">
+        <a href="friends.php?tab=friends<?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friends-tab <?php echo $tab === 'friends' ? 'active' : ''; ?>">
             <i class="bi bi-people"></i> Bạn bè (<?php echo count($friends); ?>)
         </a>
-        <a href="friends.php?tab=requests" class="friends-tab <?php echo $tab === 'requests' ? 'active' : ''; ?>">
+        <a href="friends.php?tab=requests<?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friends-tab <?php echo $tab === 'requests' ? 'active' : ''; ?>">
             <i class="bi bi-person-plus"></i> Lời mời
             <?php if (count($pendingRequests) > 0): ?>
                 <span class="badge"><?php echo count($pendingRequests); ?></span>
             <?php endif; ?>
         </a>
-        <a href="friends.php?tab=sent" class="friends-tab <?php echo $tab === 'sent' ? 'active' : ''; ?>">
+        <a href="friends.php?tab=sent<?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friends-tab <?php echo $tab === 'sent' ? 'active' : ''; ?>">
             <i class="bi bi-send"></i> Đã gửi (<?php echo count($sentRequests); ?>)
         </a>
         <?php if ($searchQuery): ?>
-        <a href="friends.php?tab=search&q=<?php echo urlencode($searchQuery); ?>" class="friends-tab <?php echo $tab === 'search' ? 'active' : ''; ?>">
+        <a href="friends.php?tab=search&q=<?php echo urlencode($searchQuery); ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friends-tab <?php echo $tab === 'search' ? 'active' : ''; ?>">
             <i class="bi bi-search"></i> Kết quả tìm kiếm
         </a>
         <?php endif; ?>
@@ -203,8 +206,8 @@ if (!$isEmbed) {
                     </div>
                 </div>
                 <div class="friend-actions">
-                    <a href="chat.php?with=<?php echo $friend['id']; ?>" class="friend-btn primary"><i class="bi bi-chat-dots"></i> Nhắn tin</a>
-                    <a href="view_profile.php?id=<?php echo $friend['id']; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
+                    <a href="chat.php?with=<?php echo $friend['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn primary"><i class="bi bi-chat-dots"></i> Nhắn tin</a>
+                    <a href="view_profile.php?id=<?php echo $friend['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
                     <button class="friend-btn danger" onclick="friendAction('unfriend', <?php echo $friend['id']; ?>)"><i class="bi bi-person-dash"></i></button>
                 </div>
             </div>
@@ -242,7 +245,7 @@ if (!$isEmbed) {
                 <div class="friend-actions">
                     <button class="friend-btn success" onclick="friendAction('accept_request', <?php echo $req['id']; ?>)"><i class="bi bi-check-lg"></i> Chấp nhận</button>
                     <button class="friend-btn danger" onclick="friendAction('reject_request', <?php echo $req['id']; ?>)"><i class="bi bi-x-lg"></i> Từ chối</button>
-                    <a href="view_profile.php?id=<?php echo $req['id']; ?>" class="friend-btn outline"><i class="bi bi-person"></i></a>
+                    <a href="view_profile.php?id=<?php echo $req['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn outline"><i class="bi bi-person"></i></a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -278,7 +281,7 @@ if (!$isEmbed) {
                 </div>
                 <div class="friend-actions">
                     <button class="friend-btn danger" onclick="friendAction('cancel_request', <?php echo $sent['id']; ?>)"><i class="bi bi-x-lg"></i> Hủy lời mời</button>
-                    <a href="view_profile.php?id=<?php echo $sent['id']; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
+                    <a href="view_profile.php?id=<?php echo $sent['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -341,7 +344,7 @@ if (!$isEmbed) {
                 </div>
                 <div class="friend-actions">
                     <?php if ($fs && $fs['status'] === 'accepted'): ?>
-                        <a href="chat.php?with=<?php echo $result['id']; ?>" class="friend-btn primary"><i class="bi bi-chat-dots"></i> Nhắn tin</a>
+                        <a href="chat.php?with=<?php echo $result['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn primary"><i class="bi bi-chat-dots"></i> Nhắn tin</a>
                         <button class="friend-btn danger" onclick="friendAction('unfriend', <?php echo $result['id']; ?>)"><i class="bi bi-person-dash"></i></button>
                     <?php elseif ($fs && $fs['status'] === 'pending' && $fs['is_sender']): ?>
                         <button class="friend-btn outline" disabled><i class="bi bi-clock"></i> Đã gửi lời mời</button>
@@ -354,7 +357,7 @@ if (!$isEmbed) {
                     <?php else: ?>
                         <button class="friend-btn primary" onclick="friendAction('send_request', <?php echo $result['id']; ?>)"><i class="bi bi-person-plus"></i> Kết bạn</button>
                     <?php endif; ?>
-                    <a href="view_profile.php?id=<?php echo $result['id']; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
+                    <a href="view_profile.php?id=<?php echo $result['id']; ?><?php echo $isEmbed ? '&embed=1' : ''; ?>" class="friend-btn outline"><i class="bi bi-person"></i> Xem</a>
                 </div>
             </div>
             <?php endforeach; ?>

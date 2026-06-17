@@ -1,0 +1,142 @@
+**CHƯƠNG 2: CƠ SỞ LÝ THUYẾT VÀ CÔNG NGHỆ SỬ DỤNG**
+
+**2.1. Phương pháp phân tích thiết kế hệ thống và Cơ sở dữ liệu**
+
+**2.1.1. Ngôn ngữ mô hình hóa thống nhất (UML - Unified Modeling Language)**
+    Ngôn ngữ mô hình hóa thống nhất (UML) là một ngôn ngữ mô hình hóa chuẩn hóa toàn cầu được sử dụng rộng rãi trong kỹ nghệ phần mềm hướng đối tượng. Được phát triển bởi Grady Booch, James Rumbaugh, và Ivar Jacobson tại tập đoàn Rational Software vào những năm 1990, UML cung cấp một hệ thống ký hiệu trực quan giúp đặc tả, trực quan hóa, xây dựng cấu trúc và làm tài liệu cho các thành phần của hệ thống phần mềm phức tạp. UML giúp thu hẹp khoảng cách giao tiếp giữa người phân tích nghiệp vụ, kiến trúc sư phần mềm, lập trình viên và khách hàng bằng cách chuyển đổi các nhu cầu nghiệp vụ thực tế thành các sơ đồ đồ họa có quy tắc chặt chẽ.
+    UML được chia thành hai nhóm sơ đồ chính: Sơ đồ cấu trúc (Structural Diagrams) mô tả cấu trúc tĩnh của hệ thống và Sơ đồ hành vi (Behavioral Diagrams) mô tả luồng tương tác động giữa các thực thể theo thời gian. Trong đồ án này, các sơ đồ UML cốt lõi được ứng dụng bao gồm:
+    + **Sơ đồ ca sử dụng (Use Case Diagram):** Thuộc nhóm sơ đồ hành vi, giúp xác định biên giới hệ thống (system boundary), các tác nhân bên ngoài tương tác với hệ thống (Actors - bao gồm Bệnh nhân, Sinh viên Y khoa, Quản trị viên) và các chức năng thực tế mà hệ thống cung cấp (Use Cases). Sơ đồ ca sử dụng làm rõ các mối quan hệ đặc biệt:
+        * *Mối quan hệ bao hàm (<<include>>):* Chỉ ra rằng một ca sử dụng chính bắt buộc phải gọi thực thi một ca sử dụng khác để hoàn thành nhiệm vụ của nó. Ví dụ, ca sử dụng "Đăng bài tuyển dụng người chăm sóc" bắt buộc phải bao hàm ca sử dụng "Xác thực quyền đăng tin", tức là hệ thống phải kiểm tra quyền của người dùng trước khi lưu bài viết.
+        * *Mối quan hệ mở rộng (<<extend>>):* Mô tả hành vi tùy chọn chỉ được thực hiện trong một số điều kiện cụ thể. Ví dụ, ca sử dụng "Đánh giá sinh viên" có thể được mở rộng bằng ca sử dụng "Báo cáo vi phạm" nếu trong quá trình thực hiện công việc xảy ra sự cố nghiêm trọng.
+    + **Sơ đồ lớp (Class Diagram):** Thuộc nhóm sơ đồ cấu trúc tĩnh, là thành phần quan trọng nhất trong thiết kế hướng đối tượng. Sơ đồ lớp định nghĩa các lớp (Classes) đại diện cho các thực thể logic trong mã nguồn (User, Post, Appointment, CallSignal) bao gồm các thuộc tính (Attributes) và phương thức hoạt động (Operations), cùng mối quan hệ cấu trúc giữa các lớp:
+        * *Hiệp tác (Association):* Mối quan hệ ngữ nghĩa chung giữa hai lớp độc lập (ví dụ: một lớp Post liên kết với một lớp User người đăng).
+        * *Thu nạp (Aggregation):* Mối quan hệ dạng "một phần - toàn thể" lỏng lẻo, trong đó thực thể con có thể tồn tại độc lập với thực thể cha (ví dụ: lớp School chứa nhiều lớp Student, nếu trường học giải thể thì sinh viên vẫn tồn tại).
+        * *Cấu thành (Composition):* Mối quan hệ "một phần - toàn thể" cực kỳ chặt chẽ, thực thể con không thể tồn tại độc lập và sẽ bị hủy nếu thực thể cha bị xóa (ví dụ: một Conversation chứa nhiều Message, nếu xóa cuộc trò chuyện thì tất cả tin nhắn bên trong sẽ bị xóa theo).
+        * *Kế thừa (Generalization/Inheritance):* Thể hiện tính bao quát hóa, cho phép các lớp con kế thừa toàn bộ thuộc tính và phương thức từ lớp cha chung để tránh lặp mã nguồn (ví dụ: lớp Patient và lớp Student đều kế thừa các thuộc tính định danh cơ bản từ lớp cha User).
+
+**2.1.2. Mô hình thực thể liên kết (ERD) và Cơ sở dữ liệu quan hệ (RDBMS)**
+    Mô hình thực thể liên kết (Entity Relationship Diagram - ERD) là công cụ nền tảng dùng để thiết kế mức khái niệm cho cơ sở dữ liệu quan hệ. ERD biểu diễn cấu trúc thông tin một cách trực quan thông qua ba thành phần chính: Thực thể (Entity) đại diện cho các đối tượng thế giới thực cần lưu trữ (User, Appointment, Rating), Thuộc tính (Attribute) mô tả các đặc điểm của thực thể (như email, số điện thoại, mật khẩu), và Mối liên kết (Relationship) thể hiện cách thức các thực thể tương tác với nhau (1-1, 1-Nhiều, Nhiều-Nhiều).
+    Hệ quản trị cơ sở dữ liệu quan hệ (Relational Database Management System - RDBMS) lưu trữ dữ liệu dưới dạng các bảng hai chiều (quan hệ) liên kết với nhau bằng cơ chế ràng buộc toàn vẹn:
+    + **Khóa chính (Primary Key - PK):** Một hoặc một nhóm trường xác định duy nhất một bản ghi trong bảng (ví dụ: cột id trong bảng users).
+    + **Khóa ngoại (Foreign Key - FK):** Một trường trong bảng này trỏ tới Khóa chính của bảng khác để thiết lập mối quan hệ và duy trì tính toàn vẹn tham chiếu (ví dụ: trường user_id trong bảng posts trỏ về id của bảng users).
+    Để tránh các hiện tượng dị thường dữ liệu (dị thường thêm mới, cập nhật, xóa) và giảm thiểu dư thừa dữ liệu tối đa, hệ thống cơ sở dữ liệu phải được thiết kế tuân thủ các quy tắc chuẩn hóa (Normalization):
+    1. **Dạng chuẩn 1 (1NF - First Normal Form):** Yêu cầu tất cả các thuộc tính trong bảng đều phải chứa các giá trị nguyên tố (atomic values), tức là không chứa các nhóm lặp hoặc thuộc tính đa trị.
+    2. **Dạng chuẩn 2 (2NF - Second Normal Form):** Bảng phải đạt dạng chuẩn 1NF và tất cả các thuộc tính không khóa phải phụ thuộc hàm đầy đủ (fully functionally dependent) vào khóa chính, loại bỏ các phụ thuộc một phần vào một thành phần của khóa chính ghép.
+    3. **Dạng chuẩn 3 (3NF - Third Normal Form):** Bảng phải đạt dạng chuẩn 2NF và không có thuộc tính không khóa nào phụ thuộc bắc cầu (transitive dependency) vào khóa chính thông qua một thuộc tính không khóa khác.
+
+![Hình 2.1: Sơ đồ tiến trình chuẩn hóa cơ sở dữ liệu từ dạng chưa chuẩn hóa đến Dạng chuẩn 3 (3NF)](images/db_normalization.svg)
+
+---
+
+**2.2. Các công nghệ phát triển phía Client (Frontend)**
+
+**2.2.1. Bộ ba công nghệ nền tảng HTML5, CSS3 và JavaScript**
+    Giao diện người dùng của ứng dụng được xây dựng trên bộ ba công nghệ tiêu chuẩn của tổ chức W3C:
+    + **HTML5 (HyperText Markup Language 5):** Cung cấp khung cấu trúc cho trang web. HTML5 hỗ trợ các thẻ ngữ nghĩa mới giúp cấu trúc tài liệu rõ ràng, tăng hiệu quả công cụ tìm kiếm (SEO) và tích hợp các công nghệ đa phương tiện mặc định mà không cần cài đặt thêm plugin bên ngoài.
+    + **CSS3 (Cascading Style Sheets 3):** Chịu trách nhiệm định dạng màu sắc, bố cục trực quan cho trang web. CSS3 hỗ trợ các thuộc tính chuyển động mượt (transitions, animations), căn chỉnh Flexbox và Grid Layout giúp tạo giao diện sinh động, đa thiết bị.
+    + **JavaScript (ES6+) và cơ chế bất đồng bộ AJAX:** JavaScript chạy ở client giúp giao diện ứng dụng linh hoạt hơn. Bằng việc áp dụng chuẩn ES6+ (cơ chế xử lý bất đồng bộ qua Promises, cú pháp async/await), ứng dụng thực hiện các yêu cầu bất đồng bộ (AJAX) thông qua Fetch API gửi dữ liệu lên máy chủ web và nhận phản hồi JSON (như gửi tin nhắn chat, kiểm tra thông báo mới, gọi signaling WebRTC) mà không cần tải lại toàn bộ trang web.
+
+![Hình 2.2: Sơ đồ luồng giao tiếp dữ liệu RESTful API qua giao thức HTTP và phản hồi JSON](images/restful_api_flow.svg)
+
+**2.2.2. Framework Bootstrap 5.3 và Thiết kế đáp ứng (Responsive Design)**
+    Bootstrap 5.3 là framework CSS nguồn mở được sử dụng để phát triển nhanh các giao diện web có khả năng thích ứng hoàn hảo trên mọi kích thước màn hình thiết bị từ điện thoại đến máy tính để bàn (Responsive Web Design).
+    + **Cơ chế Grid System (Hệ thống lưới):** Bootstrap chia chiều rộng giao diện thành 12 cột ảo. Bằng cách sử dụng các lớp CSS kết hợp cùng các breakpoints (điểm ngắt kích thước màn hình), lập trình viên có thể chỉ định chính xác bố cục của từng khối nội dung. Ví dụ trong Dashboard bệnh nhân, khung lọc thông tin chiếm 3 cột bên trái và danh sách bài tuyển dụng chiếm 9 cột bên phải trên máy tính, nhưng sẽ tự động co lại chiếm đủ 12 cột dọc xếp chồng lên nhau trên màn hình điện thoại nhỏ.
+    + **Các Component tiện ích:** Cung cấp các thành phần giao diện chuẩn hóa (Cards, Modals, Navbar, Alerts, Spacing, Buttons) được tối ưu hóa khả năng phản hồi trực quan, giúp tăng tốc độ thiết kế và đảm bảo tính đồng nhất thẩm mỹ cho toàn bộ hệ thống.
+
+---
+
+**2.3. Các công nghệ phát triển phía Server (Backend) và Cơ sở dữ liệu**
+
+**2.3.1. Ngôn ngữ lập trình PHP và kiến trúc hoạt động**
+    PHP (Hypertext Preprocessor) là ngôn ngữ kịch bản chạy phía máy chủ (server-side) mã nguồn mở được thiết kế tối ưu cho phát triển web. PHP chạy trực tiếp trên máy chủ, cho phép xử lý các logic nghiệp vụ phức tạp, truy vấn dữ liệu từ MySQL, quản lý phiên làm việc thông qua Session/Cookie, phân quyền người dùng và tạo ra mã nguồn HTML kết quả để gửi về cho client. Trong hệ thống kết nối y tế, PHP đóng vai trò xử lý toàn bộ logic như đăng ký tài khoản, gửi tin nhắn, điều phối cuộc gọi và kết nối đến các mô hình AI.
+    PHP quản lý trạng thái đăng nhập của người dùng thông qua cơ chế Session: Server tạo một vùng nhớ tạm thời tương ứng với từng phiên làm việc của người dùng và gửi về trình duyệt một chuỗi khóa định danh duy nhất gọi là Session ID lưu trong Cookie. Trong các request tiếp theo, Cookie này được tự động gửi kèm lên server để nhận dạng danh tính và vai trò người dùng một cách an toàn.
+
+![Hình 2.3: Sơ đồ tương tác cấu trúc Client-Server 3 tầng (3-Tier Architecture) trong hệ thống](images/client_server_3_tier.svg)
+
+![Hình 2.4: Sơ đồ tuần tự quy trình xác thực phiên làm việc (Session Authentication) giữa Client và Server](images/session_auth_flow.svg)
+
+**2.3.2. Kết nối CSDL an toàn bằng PHP Data Objects (PDO)**
+    PDO là lớp giao tiếp cơ sở dữ liệu thống nhất được tích hợp sẵn trong PHP, cung cấp một giao thức trừu tượng hóa cơ sở dữ liệu chung cho phép ứng dụng kết nối tới nhiều hệ quản trị cơ sở dữ liệu khác nhau mà không cần thay đổi logic viết câu lệnh truy vấn.
+    Một ưu điểm bảo mật cốt lõi khi sử dụng PDO là cơ chế chuẩn bị trước câu lệnh (Prepared Statements) kết hợp ràng buộc tham số (Parameter Binding). Đây là phương pháp tối ưu nhất để phòng chống lỗ hổng bảo mật nghiêm trọng SQL Injection:
+    + **Lỗ hổng SQL Injection:** Xảy ra khi lập trình viên trực tiếp nối chuỗi dữ liệu đầu vào của người dùng vào câu lệnh SQL. Kẻ tấn công có thể chèn các ký tự đặc biệt hoặc mã SQL độc hại (ví dụ: ' OR '1'='1) qua ô nhập liệu để làm thay đổi logic câu lệnh ban đầu, truy cập hoặc xóa trái phép dữ liệu của hệ thống.
+    + **Cơ chế phòng vệ của PDO Prepared Statements:** Khi dùng prepared statements, cấu trúc của câu lệnh truy vấn SQL được biên dịch và gửi lên máy chủ MySQL trước dưới dạng bộ khung không chứa dữ liệu cụ thể (sử dụng các tham số placeholder dạng dấu chấm hỏi ? hoặc tham số đặt tên). Sau đó, các biến dữ liệu từ người dùng mới được liên kết (bind) vào câu lệnh dưới dạng giá trị thô thuần túy. MySQL sẽ xử lý các tham số này chỉ dưới dạng các giá trị trường dữ liệu chứ không bao giờ biên dịch chúng thành mã SQL thực thi, từ đó loại bỏ hoàn toàn khả năng khai thác SQL Injection.
+
+Đoạn mã cấu trúc thực tế xử lý truy vấn thông tin người dùng sử dụng PDO prepared statements trong hệ thống:
+```php
+$stmt = $pdo->prepare("SELECT id, password_hash, role FROM users WHERE email = ? LIMIT 1");
+$stmt->execute([$email]);
+$user = $stmt->fetch();
+```
+
+![Hình 2.5: Sơ đồ cơ chế hoạt động của PDO Prepared Statements chống lại lỗ hổng SQL Injection](images/prepared_statements.svg)
+
+**2.3.3. Hệ quản trị cơ sở dữ liệu quan hệ MySQL và cơ chế InnoDB**
+    MySQL là hệ quản trị cơ sở dữ liệu quan hệ (RDBMS) mã nguồn mở hoạt động theo mô hình bảng lưu trữ cấu trúc chặt chẽ. Dữ liệu được tổ chức thành các bảng có mối quan hệ liên kết với nhau thông qua cơ chế khóa chính (Primary Key) xác định tính duy nhất của bản ghi và khóa ngoại (Foreign Key) để đảm bảo tính toàn vẹn tham chiếu. MySQL hỗ trợ cơ chế lưu trữ an toàn, truy vấn dữ liệu hiệu năng cao và thích hợp cho các ứng dụng web động xử lý khối lượng giao dịch lớn. Trong dự án này, MySQL sử dụng công cụ lưu trữ (Storage Engine) mặc định là InnoDB nhờ các tính năng nâng cao như hỗ trợ ràng buộc toàn vẹn khóa ngoại (Foreign Keys) để tự động hóa kiểm tra tính nhất quán dữ liệu giữa các bảng và hỗ trợ đầy đủ các giao dịch cơ sở dữ liệu (Database Transactions) bảo đảm tính toàn vẹn dữ liệu.
+    Khi xử lý các nghiệp vụ nhạy cảm như tạo lịch hẹn y tế (bảng appointments) hay duyệt thanh toán, dữ liệu cần được ghi đồng thời vào nhiều bảng liên quan. MySQL InnoDB đảm bảo các giao dịch này tuân thủ nghiêm ngặt 4 thuộc tính ACID:
+    + **Atomicity (Tính nguyên tử):** Đảm bảo một giao dịch được thực hiện trọn vẹn hoặc không thực hiện gì cả. Nếu một câu lệnh trong chuỗi giao dịch thất bại, toàn bộ giao dịch sẽ bị thu hồi (Rollback) về trạng thái ban đầu.
+    + **Consistency (Tính nhất quán):** Đảm bảo cơ sở dữ liệu chuyển đổi từ trạng thái hợp lệ này sang trạng thái hợp lệ khác sau khi giao dịch thành công, tuân thủ tất cả các ràng buộc toàn vẹn dữ liệu.
+    + **Isolation (Tính cô lập):** Đảm bảo các giao dịch chạy đồng thời độc lập với nhau, kết quả của một giao dịch đang thực thi sẽ không được nhìn thấy bởi các giao dịch khác cho đến khi nó được ghi nhận (Commit).
+    + **Durability (Tính bền vững):** Đảm bảo một khi giao dịch đã Commit thành công, các thay đổi dữ liệu sẽ được lưu trữ vĩnh viễn vào bộ nhớ lưu trữ vật lý và không bị mất ngay cả khi hệ thống xảy ra sự cố đột ngột.
+
+---
+
+**2.4. Công nghệ truyền thông thời gian thực WebRTC**
+
+**2.4.1. Tổng quan về WebRTC (Web Real-Time Communication)**
+    WebRTC là một bộ tiêu chuẩn công nghệ nguồn mở cho phép các trình duyệt và ứng dụng di động thiết lập kết nối truyền tải video, audio và dữ liệu thời gian thực ngang hàng trực tiếp (Peer-to-Peer - P2P) mà không cần cài đặt plugin hay phần mềm trung gian độc lập. Ba thư viện API JavaScript nền tảng cấu thành WebRTC gồm:
+    + MediaStream (getUserMedia): Yêu cầu quyền truy cập từ trình duyệt để kích hoạt camera và microphone của người dùng đầu cuối để thu luồng video/audio.
+    + RTCPeerConnection: Thành phần chính quản lý tiến trình thiết lập kết nối mạng, mã hóa luồng dữ liệu truyền phát âm thanh/hình ảnh thời gian thực, tự động thích ứng với băng thông mạng để đảm bảo chất lượng cuộc gọi tốt nhất.
+    + RTCDataChannel: Kênh truyền dữ liệu dạng text/binary hai chiều có độ trễ cực thấp trực tiếp giữa hai trình duyệt.
+
+**2.4.2. Quy trình Signaling (Báo hiệu) và vượt tường lửa (NAT Traversal)**
+    Dù WebRTC truyền phát luồng dữ liệu (Stream) trực tiếp giữa hai máy khách (P2P), hai trình duyệt vẫn cần một kênh trung gian ban đầu để trao đổi địa chỉ IP công cộng và cấu hình codec trước khi kết nối trực tiếp được thiết lập. Kênh này gọi là máy chủ Signaling (Signaling Server).
+    + **Luồng bắt tay Signaling:**
+        1. Thiết bị gọi (Caller) khởi tạo một gói mô tả SDP (Session Description Protocol) gọi là Offer chứa thông tin cấu hình phần cứng của mình. Gói Offer này được gửi lên máy chủ Signaling.
+        2. Máy chủ Signaling chuyển gói Offer này tới thiết bị nhận (Callee).
+        3. Callee nhận Offer, tạo một gói phản hồi SDP tương ứng gọi là Answer và gửi lại qua máy chủ Signaling để chuyển tiếp tới Caller.
+        4. Đồng thời, hai trình duyệt liên tục thu thập địa chỉ mạng của mình gọi là các gói ICE Candidates và trao đổi chéo cho nhau qua máy chủ báo hiệu để tìm ra lộ trình bắt tay vật lý khả thi.
+    + **Hạ tầng vượt tường lửa NAT với STUN/TURN và ICE:**
+        * *STUN (Session Traversal Utilities for NAT):* Máy chủ trung gian giúp trình duyệt tự khám phá ra địa chỉ IP công cộng và cổng mở của chính nó để đóng gói gửi cho đối phương.
+        * *TURN (Traversal Using Relays around NAT):* Trong trường hợp cả hai thiết bị đều nằm sau lớp NAT đối xứng phức tạp không thể kết nối trực tiếp, TURN Server đóng vai trò máy chủ trung chuyển (Relay) luồng video/audio. Mặc dù làm mất đi tính chất P2P thuần túy, TURN đảm bảo cuộc gọi luôn được thiết lập thành công trong mọi điều kiện mạng.
+
+![Hình 2.6: Sơ đồ luồng tín hiệu báo hiệu (Signaling) và thiết lập kết nối WebRTC P2P](images/webrtc_flow.svg)
+
+**2.4.3. Cơ chế Signaling qua Cơ sở dữ liệu (Database-based Signaling)**
+    Trong dự án này, để tối ưu hóa khả năng triển khai trên các môi trường hosting PHP Apache phổ thông mà không cần duy trì các máy chủ WebSockets (Node.js) đắt đỏ, hệ thống triển khai giải pháp Signaling qua cơ sở dữ liệu kết hợp AJAX Polling:
+    + Gói tín hiệu Offer, Answer, và các gói ICE Candidates từ client gửi lên backend qua AJAX POST và được lưu trữ trực tiếp vào bảng cơ sở dữ liệu call_signals.
+    + Trình duyệt phía người nhận sử dụng Javascript gửi yêu cầu kiểm tra định kỳ (HTTP GET Polling sau mỗi 1.5 - 2 giây) tới tệp call_signaling.php để dò tìm tín hiệu báo hiệu mới. Khi có tín hiệu, trình duyệt lập tức nạp gói tin SDP và ICE vào luồng xử lý WebRTC để bắt đầu cuộc gọi.
+
+---
+
+**2.5. Trí tuệ nhân tạo tạo sinh Generative AI và Tích hợp API**
+
+**2.5.1. Trợ lý y tế ảo dựa trên mô hình ngôn ngữ lớn (LLM)**
+    Generative AI (Trí tuệ nhân tạo tạo sinh) đại diện cho bước đột phá lớn của học máy, cho phép tạo ra văn bản tự nhiên giống con người dựa trên kiến trúc mạng nơ-ron Transformer với cơ chế chú ý tự động (Self-Attention mechanism). Mô hình ngôn ngữ lớn (LLM) được huấn luyện trước trên tập dữ liệu khổng lồ giúp trợ lý ảo y tế trên website có thể hiểu ngữ cảnh câu hỏi, trả lời các thắc mắc kiến thức sức khỏe thông dụng của bệnh nhân, hướng dẫn các kỹ năng lâm sàng cho sinh viên, đồng thời hỗ trợ vận hành hệ thống một cách tối ưu.
+
+**2.5.2. Google Gemini API và kỹ thuật xây dựng rào cản an toàn y tế**
+    Google cung cấp dịch vụ đám mây cho phép kết nối trực tiếp tới mô hình AI tiên tiến gemini-2.5-flash qua cổng API RESTful để thực hiện phản hồi thông minh với tốc độ xử lý nhanh và độ hiểu biết cao.
+    + **Kỹ thuật Prompt Engineering và System Instruction:** Thiết lập chỉ thị hệ thống trước khi bắt đầu hội thoại là kỹ thuật thiết yếu để cấu hình hành vi cho AI. Trong hệ thống kết nối y tế, một hệ thống chỉ thị (Prompt Instruction) nghiêm ngặt được thiết lập trong tệp api/ai_gemini.php để xây dựng rào cản an toàn (Guardrails) y tế cho người dùng:
+        * *Lọc chủ đề (Topic Control):* AI tự động từ chối trả lời mọi câu hỏi không thuộc chủ đề y học, chăm sóc sức khỏe và hướng dẫn sử dụng website (như yêu cầu làm toán, kể chuyện, viết code lập trình).
+        * *Ngăn chặn tự chẩn đoán và kê đơn:* AI bị cấm chỉ định liều lượng thuốc hay khẳng định chắc chắn chẩn đoán bệnh cụ thể. Chỉ được cung cấp thông tin tham khảo về triệu chứng và khuyên dùng các nhóm thuốc hạ sốt, bù nước cơ bản.
+        * *Giao thức triệu chứng nguy kịch (Red Flags Protocol):* Khi phát hiện các triệu chứng nguy cấp (đau thắt ngực, khó thở nghiêm trọng, co giật, liệt méo miệng đột ngột), AI lập tức dừng tư vấn y tế thông thường và bắt buộc hiển thị cảnh báo khẩn cấp hướng dẫn người bệnh gọi ngay cấp cứu 115.
+
+**2.5.3. Hugging Face Inference API và Cơ chế dự phòng chịu lỗi (Fallback)**
+    Để đảm bảo trợ lý y tế ảo hoạt động liên tục 24/7 khi Google Gemini gặp các sự cố như hết hạn ngạch API miễn phí, quá tải máy chủ hoặc mất kết nối mạng, hệ thống được trang bị cơ chế chịu lỗi (Fault Tolerance):
+    + **Hugging Face Inference API:** Cho phép gửi truy vấn trực tiếp đến mô hình chatbot nguồn mở gọn nhẹ như Meta BlenderBot-400M-distill chạy trên đám mây Hugging Face.
+    + **Luồng xử lý dự phòng:** Backend PHP được viết trong khối lệnh try-catch. Khi lời gọi API Gemini xảy ra lỗi hoặc trả về mã trạng thái thất bại, hệ thống lập tức bắt ngoại lệ này và thực hiện cuộc gọi dự phòng tới Hugging Face API để lấy câu trả lời. Nếu cả hai dịch vụ API đám mây đều mất kết nối, hệ thống sẽ gọi hàm phân tích từ khóa nội bộ getLocalFallbackResponse() để đưa ra phản hồi y tế/vận hành định sẵn phù hợp.
+
+![Hình 2.7: Sơ đồ luồng dự phòng chịu lỗi (AI Fallback & Local Fallback Flow) của trợ lý ảo](images/ai_fallback_flow.svg)
+
+---
+
+**2.6. Công nghệ đóng gói và triển khai Container Docker**
+
+**2.6.1. Công nghệ Containerization và ảo hóa cấp độ hệ điều hành**
+    Containerization là công nghệ đóng gói toàn bộ mã nguồn ứng dụng, tệp cấu hình môi trường và các thư viện liên quan thành một khối đóng kín độc lập gọi là Container.
+    + **Sự khác biệt với Máy ảo (Virtual Machine - VM):** Máy ảo hoạt động dựa trên phần mềm Hypervisor để giả lập phần cứng và yêu cầu chạy một hệ điều hành khách (Guest OS) riêng biệt bên trong. Việc này chiếm dụng lượng tài nguyên phần cứng rất lớn (vài GB ổ cứng, RAM) và khởi động chậm. Trái lại, các Container dùng chung nhân của hệ điều hành máy chủ (Host OS) và được cô lập về tài nguyên ở tầng nhân hệ điều hành thông qua hai cơ chế lõi của Linux Kernel là namespaces (cô lập tài nguyên mạng, tiến trình, đĩa cứng) và cgroups (giới hạn phần cứng RAM/CPU), giúp dung lượng container cực kỳ nhẹ (chỉ vài chục MB), khởi động tức thì và tiết kiệm tối đa RAM/CPU.
+
+![Hình 2.8: Sơ đồ so sánh kiến trúc giữa máy ảo Virtual Machine và Docker Container](images/docker_vs_vm.svg)
+
+**2.6.2. Môi trường ảo hóa với Docker và Docker Compose**
+    + **Docker Image và Container:** Docker Image là khuôn mẫu tĩnh chứa toàn bộ môi trường và mã nguồn đã đóng gói. Docker Container là trạng thái thực thi trực tiếp của ảnh tĩnh đó. Quy trình biên dịch ảnh tĩnh này được đặc tả chi tiết trong tệp cấu hình Dockerfile (tải hệ điều hành Alpine nhẹ, cài đặt Apache, PHP 8.2 và các extension PDO).
+    + **Docker Compose:** Công cụ hỗ trợ chạy các hệ thống đa container. Thông qua tệp cấu hình docker-compose.yml, lập trình viên thiết lập mạng nội bộ liên kết đồng bộ hai container chạy song song: một Web Server chứa mã nguồn PHP và một MySQL Server chứa CSDL. Docker Compose đảm bảo môi trường phát triển của lập trình viên và môi trường chấm đồ án của giảng viên luôn đồng nhất tuyệt đối, tránh lỗi "chạy được trên máy em nhưng lỗi trên máy khác".

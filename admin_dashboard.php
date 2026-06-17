@@ -35,7 +35,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         $stmt->execute([$status, $note ?: null, $reqId]);
       }
       // redirect to avoid resubmit
-      header('Location: admin_dashboard.php?msg=ok');
+      header('Location: admin_dashboard.php?panel=user-requests&msg=ok');
       exit;
     } catch (Throwable $e) {
       error_log('Update account_request failed: ' . $e->getMessage());
@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
       $stmt = $pdo->prepare("DELETE FROM account_requests WHERE id = ?");
       $stmt->execute([$reqId]);
-      header('Location: admin_dashboard.php?msg=deleted');
+      header('Location: admin_dashboard.php?panel=user-requests&msg=deleted');
       exit;
     } catch (Throwable $e) {
       error_log('Delete account_request failed: ' . $e->getMessage());
@@ -66,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     try {
       $stmt = $pdo->prepare('DELETE FROM ratings WHERE id = ?');
       $stmt->execute([$ratingId]);
-      header('Location: admin_dashboard.php?msg=rating_deleted');
+      header('Location: admin_dashboard.php?panel=ratings&msg=rating_deleted');
       exit;
     } catch (Throwable $e) {
       error_log('Delete rating failed: ' . $e->getMessage());
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'delete_all_ratings') {
   try {
     $pdo->exec('DELETE FROM ratings');
-    header('Location: admin_dashboard.php?msg=ratings_cleared');
+    header('Location: admin_dashboard.php?panel=ratings&msg=ratings_cleared');
     exit;
   } catch (Throwable $e) {
     error_log('Delete all ratings failed: ' . $e->getMessage());
@@ -287,10 +287,57 @@ require_once 'header.php';
 <style>
   /* Match student/patient dashboard layout */
   .premium-navbar { display: none !important; }
+  body { padding-top: 0 !important; margin: 0 !important; }
+
+  /* Reset hoàn toàn margin/padding trên html và body */
+  html, body { margin: 0 !important; padding: 0 !important; }
   body { padding-top: 0 !important; }
+
+  /* Xóa khoảng trắng từ container bao ngoài do header.php tạo ra */
+  .dashboard-container,
+  .container-wide {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* Đảm bảo layout chiếm toàn bộ viewport theo chiều dọc */
+  .dashboard-layout {
+    min-height: 100vh !important;
+    margin: 0 !important;
+  }
+
+  /* Đảm bảo topbar dính vào đỉnh, không có gap */
+  .dashboard-main {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  /* Đảm bảo dashboard-layout bắt đầu ngay từ đầu trang */
+  body > .dashboard-layout {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+  }
+
   /* Header opens .container.py-4 for non-dashboard pages; make it full-width here */
   .container.py-4 { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
   footer, .footer, .bg-light.text-muted { display: none !important; }
+
+  /* Ẩn hoàn toàn dashboard-container từ header.php (chứa incoming call overlay, audio, v.v.) */
+  body > .dashboard-container,
+  body > .container-wide {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    pointer-events: none !important;
+    z-index: -1 !important;
+  }
 
   .admin-embed-frame {
     width: 100%;
@@ -299,6 +346,64 @@ require_once 'header.php';
     background: transparent;
     border-radius: 16px;
   }
+
+  /* ===== ADMIN HERO BANNER ===== */
+  .admin-hero {
+    position: relative;
+    border-radius: 0 0 24px 24px;  /* Chỉ round góc dưới — góc trên phẳng để sát topbar */
+    overflow: hidden;
+    min-height: 320px;
+    background: url('ảnh/logo%20web.jpg') center center no-repeat;
+    background-size: contain;
+    background-color: #f0f7ff;
+  }
+  /* Welcome section cùng màu nền với hero để không thấy gap */
+  .dashboard-welcome-section {
+    background-color: #f0f7ff !important;
+  }
+  .admin-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(15,23,42,0.25), rgba(59,130,246,0.15), rgba(139,92,246,0.15));
+  }
+  .admin-hero-content { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 2rem 2.5rem; }
+  .admin-hero-left { color: #fff; }
+  .admin-hero-left .hero-greeting { font-weight: 800; font-size: 1.5rem; margin-bottom: .6rem; }
+  .hero-chips { display: flex; gap: .6rem; flex-wrap: wrap; }
+  .hero-chip { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; font-weight: 600; color: #0f172a; background: #fff; border-radius: 999px; padding: .45rem .85rem; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+  .hero-chip i { color: #3b82f6; }
+  .hero-hint { display: inline-block; margin-top: .5rem; font-size: .8rem; opacity: .85; }
+  .admin-hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .hero-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem .95rem; border-radius: 12px; text-decoration: none !important; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,.18); transition: transform .2s ease, box-shadow .2s ease; }
+  .hero-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.22); }
+  .hero-primary { background: #3b82f6; color: #fff; }
+  .hero-secondary { background: #0ea5e9; color: #fff; }
+  .hero-outline { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.35); }
+
+  /* Feature cards */
+  .feature-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.06); border: 1px solid rgba(226,232,240,.8); transition: transform 0.3s ease, box-shadow 0.3s ease; }
+  .feature-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,.12); }
+  .feature-card-header { position: relative; height: 160px; background: linear-gradient(120deg,#3b82f6,#06b6d4); display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; }
+  .feature-card-header::before { content: ''; position: absolute; inset: 0; background: inherit; opacity: 0.85; }
+  .feature-card-header .feature-icon { position: relative; z-index: 2; width: 56px; height: 56px; border-radius: 16px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; box-shadow: 0 10px 30px rgba(0,0,0,.25); background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); backdrop-filter: blur(8px); }
+  .feature-card-body { padding: 1.25rem; }
+  .feature-title { font-weight: 700; font-size: 1rem; margin-bottom: .4rem; color: #1e293b; }
+  .feature-desc { font-size: .85rem; color: #64748b; line-height: 1.5; }
+  .feature-link { display: inline-flex; align-items: center; gap: .4rem; color: #3b82f6; text-decoration: none; font-weight: 600; margin-top: .75rem; transition: gap 0.3s ease; }
+  .feature-link:hover { gap: .6rem; }
+  .feature-card-header.with-image { background-size: cover; background-position: center; }
+  .feature-card-header.with-image::before { background: var(--overlay-color, linear-gradient(135deg, rgba(59,130,246,0.8), rgba(6,182,212,0.7))); }
+
+  /* Metrics counters */
+  .mini-stat { background: #fff; border-radius: 16px; padding: .9rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); display:flex; align-items:center; gap:.8rem; }
+  .mini-stat .stat-icon { width: 40px; height: 40px; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#fff; }
+  .mini-stat .stat-value { font-weight: 800; font-size: 1.25rem; color:#1e293b; line-height:1; }
+  .mini-stat .stat-label { font-size: .8rem; color:#64748b; }
+  .bg-blue { background: linear-gradient(135deg,#3b82f6,#06b6d4); }
+  .bg-green { background: linear-gradient(135deg,#10b981,#34d399); }
+  .bg-purple { background: linear-gradient(135deg,#8b5cf6,#a78bfa); }
+  .bg-orange { background: linear-gradient(135deg,#f59e0b,#fbbf24); }
 </style>
 
 <style>
@@ -918,6 +1023,7 @@ require_once 'header.php';
 }
 </style>
 
+</div><!-- Đóng dashboard-container từ header.php -->
 <div class="dashboard-layout">
   <!-- Sidebar -->
   <aside class="dashboard-sidebar">
@@ -1003,6 +1109,11 @@ require_once 'header.php';
 
       <div class="sidebar-menu-section">
         <div class="sidebar-menu-title">Tài khoản</div>
+        <a href="ai_assistant.php" class="sidebar-menu-item" style="background:linear-gradient(135deg,rgba(14,165,233,0.1),rgba(139,92,246,0.1));border:1px solid rgba(14,165,233,0.2);border-radius:10px;margin-bottom:4px;">
+            <i class="bi bi-stars" style="color:#0ea5e9;"></i>
+            <span style="background:linear-gradient(135deg,#38bdf8,#818cf8);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">Trợ lý AI</span>
+            <span class="badge" style="background:linear-gradient(135deg,#0ea5e9,#7c3aed);font-size:.6rem;padding:2px 6px;border-radius:10px;color:#fff;">MỚI</span>
+        </a>
         <a href="#" class="sidebar-menu-item" data-section="profile" onclick="return showSection('profile', 'Hồ sơ')">
           <i class="bi bi-person-badge-fill"></i>
           <span>Hồ sơ</span>
@@ -1035,63 +1146,7 @@ require_once 'header.php';
     </div>
 
     <!-- Welcome (main dashboard) -->
-    <div class="dashboard-welcome-section p-4">
-      <!-- Admin hero banner styled similar to user dashboard -->
-      <style>
-        .admin-hero {
-          position: relative;
-          border-radius: 24px;
-          overflow: hidden;
-          min-height: 320px;
-          background: url('ảnh/logo%20web.jpg') center center no-repeat;
-          background-size: contain;
-          background-color: #f0f7ff;
-        }
-        .admin-hero::before {
-          content: '';
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(135deg, rgba(15,23,42,0.25), rgba(59,130,246,0.15), rgba(139,92,246,0.15));
-        }
-        .admin-hero-content { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 1.5rem; padding: 2rem 2.5rem; }
-        .admin-hero-left { color: #fff; }
-        .admin-hero-left .hero-greeting { font-weight: 800; font-size: 1.5rem; margin-bottom: .6rem; }
-        .hero-chips { display: flex; gap: .6rem; flex-wrap: wrap; }
-        .hero-chip { display: inline-flex; align-items: center; gap: .4rem; font-size: .85rem; font-weight: 600; color: #0f172a; background: #fff; border-radius: 999px; padding: .45rem .85rem; box-shadow: 0 4px 12px rgba(0,0,0,.15); }
-        .hero-chip i { color: #3b82f6; }
-        .hero-hint { display: inline-block; margin-top: .5rem; font-size: .8rem; opacity: .85; }
-        .admin-hero-actions { display: flex; gap: .5rem; flex-wrap: wrap; }
-        .hero-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .6rem .95rem; border-radius: 12px; text-decoration: none !important; font-weight: 600; box-shadow: 0 8px 20px rgba(0,0,0,.18); transition: transform .2s ease, box-shadow .2s ease; }
-        .hero-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(0,0,0,.22); }
-        .hero-primary { background: #3b82f6; color: #fff; }
-        .hero-secondary { background: #0ea5e9; color: #fff; }
-        .hero-outline { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.35); }
-
-        /* Feature cards row */
-        .feature-card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,.06); border: 1px solid rgba(226,232,240,.8); transition: transform 0.3s ease, box-shadow 0.3s ease; }
-        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 15px 40px rgba(0,0,0,.12); }
-        .feature-card-header { position: relative; height: 160px; background: linear-gradient(120deg,#3b82f6,#06b6d4); display: flex; align-items: center; justify-content: center; background-size: cover; background-position: center; }
-        .feature-card-header::before { content: ''; position: absolute; inset: 0; background: inherit; opacity: 0.85; }
-        .feature-card-header .feature-icon { position: relative; z-index: 2; width: 56px; height: 56px; border-radius: 16px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:1.6rem; box-shadow: 0 10px 30px rgba(0,0,0,.25); background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.4); backdrop-filter: blur(8px); }
-        .feature-card-body { padding: 1.25rem; }
-        .feature-title { font-weight: 700; font-size: 1rem; margin-bottom: .4rem; color: #1e293b; }
-        .feature-desc { font-size: .85rem; color: #64748b; line-height: 1.5; }
-        .feature-link { display: inline-flex; align-items: center; gap: .4rem; color: #3b82f6; text-decoration: none; font-weight: 600; margin-top: .75rem; transition: gap 0.3s ease; }
-        .feature-link:hover { gap: .6rem; }
-        .feature-card-header.with-image { background-size: cover; background-position: center; }
-        .feature-card-header.with-image::before { background: var(--overlay-color, linear-gradient(135deg, rgba(59,130,246,0.8), rgba(6,182,212,0.7))); }
-
-        /* Metrics counters */
-        .mini-stat { background: #fff; border-radius: 16px; padding: .9rem 1rem; box-shadow: 0 8px 24px rgba(0,0,0,.06); display:flex; align-items:center; gap:.8rem; }
-        .mini-stat .stat-icon { width: 40px; height: 40px; border-radius: 12px; display:flex; align-items:center; justify-content:center; color:#fff; }
-        .mini-stat .stat-value { font-weight: 800; font-size: 1.25rem; color:#1e293b; line-height:1; }
-        .mini-stat .stat-label { font-size: .8rem; color:#64748b; }
-        .bg-blue { background: linear-gradient(135deg,#3b82f6,#06b6d4); }
-        .bg-green { background: linear-gradient(135deg,#10b981,#34d399); }
-        .bg-purple { background: linear-gradient(135deg,#8b5cf6,#a78bfa); }
-        .bg-orange { background: linear-gradient(135deg,#f59e0b,#fbbf24); }
-      </style>
-
+    <div class="dashboard-welcome-section" style="padding: 0 1.5rem 1.5rem;">
       <!-- Overview Section - Hero, Features, Stats -->
       <div id="block-overview">
       <div class="admin-hero mb-3">
@@ -3068,6 +3123,15 @@ require_once 'header.php';
     var activeItem = document.querySelector('.sidebar-menu-item[data-section="' + sectionId + '"]');
     if (activeItem) activeItem.classList.add('active');
 
+    // Update URL query parameters to preserve section state
+    if (window.history.replaceState) {
+      var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      if (sectionId !== 'welcome') {
+        newUrl += '?section=' + sectionId;
+      }
+      window.history.replaceState({path: newUrl}, '', newUrl);
+    }
+
     closeSidebar();
     return false;
   }
@@ -3076,6 +3140,15 @@ require_once 'header.php';
   function showPanel(panelKey, title) {
     // Ensure we're on the main dashboard view (hides iframe sections)
     showSection('welcome', 'Bảng điều khiển');
+
+    // Update URL query parameters to preserve panel state on reload
+    if (window.history.replaceState) {
+      var newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      if (panelKey !== 'overview') {
+        newUrl += '?panel=' + panelKey;
+      }
+      window.history.replaceState({path: newUrl}, '', newUrl);
+    }
 
     var blockOverview = document.getElementById('block-overview');
     var blockPanels = document.getElementById('block-panels');
@@ -3194,6 +3267,8 @@ require_once 'header.php';
     try {
       var params = new URLSearchParams(window.location.search || '');
       var s = (params.get('section') || '').trim();
+      var p = (params.get('panel') || '').trim();
+
       if (s && (s === 'welcome' || iframeUrls[s])) {
         var textMap = {
           'welcome': 'Bảng điều khiển',
@@ -3206,6 +3281,20 @@ require_once 'header.php';
           'profile': 'Hồ sơ'
         };
         showSection(s, textMap[s] || 'Bảng điều khiển');
+      } else if (p) {
+        var panelMap = {
+          'approvals': 'Lịch sử xét duyệt',
+          'verify-requests': 'Yêu cầu xác thực',
+          'new-users': 'Người dùng mới',
+          'comments': 'Kiểm duyệt bình luận',
+          'ratings': 'Đánh giá người dùng',
+          'user-requests': 'Yêu cầu người dùng'
+        };
+        if (panelMap[p]) {
+          showPanel(p, panelMap[p]);
+        } else {
+          showPanel('overview', 'Bảng điều khiển');
+        }
       } else {
         // Default view: overview (hide summary blocks from the main page)
         showPanel('overview', 'Bảng điều khiển');
@@ -3214,7 +3303,11 @@ require_once 'header.php';
   });
 </script>
 
-<?php
-require_once 'footer.php';
 
-?>
+<?php
+include_once 'chatbot_widget.php';
+
+// Mở lại div để footer.php đóng (footer.php có </div> <!-- /.container --> ở dòng đầu)
+echo '<div>';
+require_once 'footer.php';
+?>
